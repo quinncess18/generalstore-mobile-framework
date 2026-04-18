@@ -67,12 +67,16 @@ const test = uniqueTest.extend({
         component: 'com.androidsample.generalstore/.SplashActivity',
         stop: false,
       });
+// Wait for the login screen to be ready after the splash animation.
+// 15s timeout is standard, but we add a brief settle after it's found.
+await driver.waitUntil(isOnLogin, {
+  timeout: 20000,
+  timeoutMsg: 'stablePage: login screen did not appear after startActivity',
+});
 
-      // Wait for the login screen to be ready after the splash animation.
-      await driver.waitUntil(isOnLogin, {
-        timeout: 15000,
-        timeoutMsg: 'stablePage: login screen did not appear after startActivity',
-      });
+// Device-specific settle time
+const settle = driver._deviceProfile?.settlePause ?? 800;
+await driver.pause(settle);
 
       // Brief settle — SplashActivity → LoginActivity transition may still be animating
       // when waitUntil returns, particularly on the Xiaomi Pad 6 (tablet). Without this,

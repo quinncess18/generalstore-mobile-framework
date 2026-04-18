@@ -36,7 +36,10 @@ jobs:
         # Appium must already be running on the host machine (npm run appium:start)
         run: npm test
         env:
-          APP_PATH: C:\Users\admin\mobile-automation-framework\apps\General-Store.apk
+          # Use the local path from GitHub Variables, or default to the relative workspace path
+          APP_PATH: ${{ vars.APP_PATH_LOCAL || './apps/General-Store.apk' }}
+          DEVICE_0_UDID: ${{ vars.DEVICE_0_UDID }}
+          DEVICE_1_UDID: ${{ vars.DEVICE_1_UDID }}
           NODE_ENV: ci
 
       - name: Upload Playwright Report

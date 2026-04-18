@@ -21,6 +21,7 @@ const { DEVICES } = require('./config/devices.config');
  * Each test is self-contained: stablePage resets to login before every test.
  */
 module.exports = defineConfig({
+  testDir: __dirname + '/tests/specs',
   testMatch: '**/*.spec.js',
 
   timeout: 60000,       // 60 s per test — mobile actions are slower than web

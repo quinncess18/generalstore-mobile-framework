@@ -106,6 +106,25 @@ npm run report:merge && npm run report
 
 ---
 
+## 🌍 Global Portability & CI/CD Setup
+
+This framework is designed to be fully portable. If you fork this repository, follow these steps to set up your own CI/CD pipeline:
+
+### **1. GitHub Actions Variables**
+Navigate to **Settings > Secrets and variables > Actions > Variables** and add the following:
+*   `APP_PATH_LOCAL`: The absolute path to your `General-Store.apk` on your local runner machine.
+*   `DEVICE_0_UDID`: The UDID of your first device (e.g., `emulator-5554`).
+*   `DEVICE_1_UDID`: The UDID of your second device (optional).
+
+### **2. Appium Security Setup**
+Appium 2.x requires the `adb_shell` feature to be explicitly enabled for advanced stabilization. Always start your server with:
+```bash
+npx appium --allow-insecure adb_shell
+```
+This is already included in the `npm run appium:start` script.
+
+---
+
 ## 🎖️ Credits & Acknowledgments
 
 This framework is built upon the enterprise-grade testing architecture and design patterns established in the **[Taqelah Lab Project](https://github.com/quinncess18/taqelah-lab-project-test)**. As my first project, the Taqelah web framework served as the foundational baseline for the architectural and organizational strategies implemented in this mobile suite, particularly in its approach to:

@@ -34,6 +34,13 @@ async function globalSetup() {
   // -------------------------------------------------------------------------
   // Ping each device — fail fast if any device is not reachable
   // -------------------------------------------------------------------------
+  // Skip ping in CI — the workflow already runs 'adb devices' and 'appium --version'.
+  // Extra pings in CI can cause instrumentation crashes if sessions overlap.
+  if (process.env.CI) {
+    console.log('[global-setup] CI mode: skipping device ping.');
+    return;
+  }
+
   console.log(`[global-setup] Pinging ${DEVICES.length} device(s)...`);
 
   for (const device of DEVICES) {
