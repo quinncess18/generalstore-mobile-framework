@@ -54,20 +54,10 @@ module.exports = defineConfig({
     // fixtures/appFixture.js using config/devices.config.js — not here.
   },
 
-  projects: [
-    ...DEVICES.map((device) => ({
-      name: `e2e » ${device.name}`,
-      testDir: './tests/specs/e2e',
-      use: { deviceConfig: device },
-      timeout: device.testTimeout,
-    })),
-    ...DEVICES.map((device) => ({
-      name: `negative » ${device.name}`,
-      testDir: './tests/specs/negative',
-      use: { deviceConfig: device },
-      timeout: device.testTimeout,
-      // Ensure negative tests for this device only run after e2e tests finish
-      dependencies: [`e2e » ${device.name}`],
-    })),
-  ],
+  projects: DEVICES.map((device) => ({
+    name: device.name,
+    testDir: __dirname + '/tests/specs',
+    use: { deviceConfig: device },
+    timeout: device.testTimeout,
+  })),
 });
