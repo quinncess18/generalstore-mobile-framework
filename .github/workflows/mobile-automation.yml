@@ -1,0 +1,58 @@
+name: Mobile Automation Regression (Real Devices)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    # CRITICAL: Using 'self-hosted' because GitHub's runners cannot access physical devices.
+    # You must install the GitHub Actions runner software on your local machine.
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Verify Environment (Pre-flight)
+        run: |
+          adb devices
+          appium --version
+        shell: bash
+
+      - name: Run All Tests (Parallel)
+        # Uses the 'test' script from package.json
+        # Appium must already be running on the host machine (npm run appium:start)
+        run: npm test
+        env:
+          # Optional: Override paths if needed for the CI environment
+          # APP_PATH: ${{ github.workspace }}/apps/General-Store.apk
+          NODE_ENV: ci
+
+      - name: Upload Playwright Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload Blob Reports (For Merging)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-blob-reports
+          path: blob-report/
+          retention-days: 7

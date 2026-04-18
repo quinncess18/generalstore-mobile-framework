@@ -1,0 +1,42 @@
+node_modules/
+playwright-report/
+test-results/
+blob-report/
+
+# Agent & Session Metadata
+.kilo/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+
+# UI Inspector Dumps
+ui_login.xml
+ui_spinner_open.xml
+
+# APK files — store separately, not in version control
+apps/*.apk
+apps/*.aab
+
+# Environment / secrets
+.env
+.env.*
+
+# OS artefacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Appium logs
+appium.log
+appium-*.log
+
+# Test artefacts
+screenshots/
+videos/
+traces/
+

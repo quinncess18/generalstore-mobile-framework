@@ -1,0 +1,42 @@
+{
+  "name": "mobile-automation-framework",
+  "version": "1.0.0",
+  "description": "Playwright + Appium mobile automation framework for General Store Android App",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:e2e": "npx playwright test tests/specs/e2e",
+    "test:negative": "npx playwright test tests/specs/negative",
+    "test:login": "npx playwright test tests/specs/e2e/login.spec.js",
+    "test:products": "npx playwright test tests/specs/e2e/products.spec.js",
+    "test:cart": "npx playwright test tests/specs/e2e/cart.spec.js",
+    "test:login-negative": "npx playwright test tests/specs/negative/login-negative.spec.js",
+    "test:smoke": "npx playwright test --grep @smoke",
+    "test:regression": "npx playwright test --grep @regression",
+    "test:single": "npx playwright test --workers=1",
+
+    "report": "npx playwright show-report",
+    "report:merge": "npx playwright merge-reports --reporter html blob-report",
+
+    "appium:start": "appium --port 4723",
+    "appium:install-driver": "appium driver install uiautomator2"
+  },
+  "dependencies": {
+    "webdriverio": "^8.36.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "appium": "^2.5.1",
+    "appium-uiautomator2-driver": "^3.0.0"
+  },
+  "keywords": [
+    "playwright",
+    "appium",
+    "android",
+    "mobile",
+    "automation",
+    "general-store"
+  ],
+  "author": "",
+  "license": "ISC"
+}
