@@ -18,8 +18,8 @@
     "report": "npx playwright show-report",
     "report:merge": "npx playwright merge-reports --reporter html blob-report",
 
-    "appium:start": "appium --port 4723",
-    "appium:install-driver": "appium driver install uiautomator2"
+    "appium:start": "npx appium --port 4723",
+    "appium:install-driver": "npx appium driver install uiautomator2"
   },
   "dependencies": {
     "webdriverio": "^8.36.1"
