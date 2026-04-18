@@ -30,7 +30,6 @@ jobs:
         run: |
           adb devices
           appium --version
-        shell: bash
 
       - name: Run All Tests (Parallel)
         # Uses the 'test' script from package.json
