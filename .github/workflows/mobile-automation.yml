@@ -36,8 +36,7 @@ jobs:
         # Appium must already be running on the host machine (npm run appium:start)
         run: npm test
         env:
-          # Optional: Override paths if needed for the CI environment
-          # APP_PATH: ${{ github.workspace }}/apps/General-Store.apk
+          APP_PATH: C:\Users\admin\mobile-automation-framework\apps\General-Store.apk
           NODE_ENV: ci
 
       - name: Upload Playwright Report
