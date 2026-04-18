@@ -65,6 +65,8 @@ module.exports = defineConfig({
       testDir: './tests/specs/negative',
       use: { deviceConfig: device },
       timeout: device.testTimeout,
+      // Ensure negative tests for this device only run after e2e tests finish
+      dependencies: [`e2e » ${device.name}`],
     })),
   ],
 });
