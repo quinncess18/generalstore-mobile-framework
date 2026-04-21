@@ -31,6 +31,12 @@ jobs:
           adb devices
           npx appium --version
 
+      - name: Start Appium Server
+        shell: bash # CRITICAL: Forces Windows to use Bash for the '&' operator
+        run: |
+          npx appium & 
+          sleep 5
+
       - name: Run All Tests (Parallel)
         # Uses the 'test' script from package.json
         # Appium must already be running on the host machine (npm run appium:start)
