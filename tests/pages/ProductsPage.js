@@ -178,16 +178,25 @@ async getProductPriceByName(productName) {
     const startY = Math.round(rect.y + (rect.height * 0.72));
     const endY = Math.round(rect.y + (rect.height * 0.32));
 
-    // Use more reliable mobile: scrollGesture instead of W3C pointer actions
-    // This avoids InteractionController issues in emulator environments
-    await this.driver.execute('mobile: scrollGesture', {
-      left: Math.round(rect.width * 0.3),
-      top: Math.round(startY),
-      width: Math.round(rect.width * 0.4),
-      height: Math.round(rect.height * 0.1),
-      direction: 'up',
-      percent: 0.7,
-    });
+    // Use gentler W3C pointer actions for emulator compatibility
+    // Shorter distance, slower speed, more pauses
+    await this.driver.performActions([{
+      type: 'pointer',
+      id: 'finger1', // Static ID to prevent pointer exhaustion
+      parameters: { pointerType: 'touch' },
+      actions: [
+        // Move to start position
+        { type: 'pointerMove', duration: 0, x: centerX, y: startY },
+        // Press down
+        { type: 'pointerDown', button: 0 },
+        // Very slow drag (2000ms) with shorter distance (40% of original)
+        { type: 'pointerMove', duration: 2000, x: centerX, y: Math.round(startY - (startY-endY)*0.4) },
+        // Release
+        { type: 'pointerUp', button: 0 },
+      ],
+    }]);
+    
+    await this.driver.releaseActions();
     await this.driver.pause(this.settlePause);
   }
 
@@ -243,24 +252,33 @@ async getProductPriceByName(productName) {
             }
         }
 
-        // 4. Not found? Execute mobile: scrollGesture (more reliable in emulators)
+        // 4. Not found? Execute gentle W3C scroll (more compatible with emulators)
         if (attempt === maxSwipes) break;
 
-        console.log(`[Diagnostic] '${normalizedTarget}' ADD TO CART not visible. mobile: scrollGesture ${attempt + 1}/${maxSwipes}`);
+        console.log(`[Diagnostic] '${normalizedTarget}' ADD TO CART not visible. Gentle W3C scroll ${attempt + 1}/${maxSwipes}`);
         
         const rect = await this.driver.getWindowRect();
         const startY = Math.round(rect.y + (rect.height * 0.62));
 
-        // Use more reliable mobile: scrollGesture instead of W3C pointer actions
-        // This avoids InteractionController issues in emulator environments
-        await this.driver.execute('mobile: scrollGesture', {
-            left: Math.round(rect.width * 0.3),
-            top: Math.round(startY),
-            width: Math.round(rect.width * 0.4),
-            height: Math.round(rect.height * 0.1),
-            direction: 'up',
-            percent: 0.7,
-        });
+        // Use gentler W3C pointer actions for emulator compatibility
+        // Shorter distance, slower speed, more pauses
+        await this.driver.performActions([{
+            type: 'pointer',
+            id: 'finger1', // Static ID to prevent pointer exhaustion
+            parameters: { pointerType: 'touch' },
+            actions: [
+                // Move to start position
+                { type: 'pointerMove', duration: 0, x: centerX, y: startY },
+                // Press down
+                { type: 'pointerDown', button: 0 },
+                // Very slow drag (2000ms) with shorter distance (40% of original)
+                { type: 'pointerMove', duration: 2000, x: centerX, y: Math.round(startY - (startY-endY)*0.4) },
+                // Release
+                { type: 'pointerUp', button: 0 },
+            ],
+        }]);
+        
+        await this.driver.releaseActions();
         
         await this.driver.pause(this.settlePause);
     }
@@ -315,10 +333,10 @@ async getProductPriceByName(productName) {
             }
         }
 
-        // 4. Not found? Execute mobile: scrollGesture (more reliable in emulators)
+        // 4. Not found? Execute gentle W3C scroll (more compatible with emulators)
         if (attempt === maxSwipes) break;
 
-        console.log(`[Diagnostic] '${normalizedTarget}' not visible for toggle. mobile: scrollGesture ${attempt + 1}/${maxSwipes}`);
+        console.log(`[Diagnostic] '${normalizedTarget}' not visible for toggle. Gentle W3C scroll ${attempt + 1}/${maxSwipes}`);
         
         const rect = await this.driver.getWindowRect();
         const startY = Math.round(rect.y + (rect.height * 0.62));
