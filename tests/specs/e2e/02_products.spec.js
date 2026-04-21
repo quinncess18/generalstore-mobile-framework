@@ -81,7 +81,7 @@ test.describe('Products', () => {
 
           await driver.performActions([{
             type: 'pointer',
-            id: `finger_down_p01_${attempt}`,
+            id: 'finger1', // CRITICAL: Static ID prevents UIAutomator2 InteractionController from crashing by exhausting Android pointer limits
             parameters: { pointerType: 'touch' },
             actions: [
               { type: 'pointerMove', duration: 0, x: centerX, y: startY },
@@ -128,7 +128,7 @@ test.describe('Products', () => {
 
         await driver.performActions([{
           type: 'pointer',
-          id: `finger_up_reset_${i}`, // CRITICAL: Unique ID prevents Appium session hangs
+          id: 'finger1', // CRITICAL: Static ID prevents UIAutomator2 InteractionController from crashing by exhausting Android pointer limits
           parameters: { pointerType: 'touch' },
           actions: [
             { type: 'pointerMove', duration: 0, x: centerX, y: startY },

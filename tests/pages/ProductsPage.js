@@ -181,7 +181,7 @@ async getProductPriceByName(productName) {
     await this.driver.performActions([
       {
         type: 'pointer',
-        id: `finger_price_${Date.now()}_${attempt}`, // Unique ID per scroll prevents session hangs
+        id: 'finger1', // CRITICAL: Must be static. Dynamic IDs exhaust Android's max pointer limit and crash UIAutomator2
         parameters: { pointerType: 'touch' },
         actions: [
           { type: 'pointerMove', duration: 0, x: centerX, y: startY },
@@ -260,7 +260,7 @@ async getProductPriceByName(productName) {
         await this.driver.performActions([
             {
                 type: 'pointer',
-                id: 'finger2', // Different pointer ID to prevent conflicts
+                id: 'finger1', // CRITICAL: Must be static to prevent pointer exhaustion
                 parameters: { pointerType: 'touch' },
                 actions: [
                     { type: 'pointerMove', duration: 0, x: centerX, y: startY },
