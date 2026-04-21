@@ -336,7 +336,7 @@ async getProductPriceByName(productName) {
         await this.driver.performActions([
             {
                 type: 'pointer',
-                id: `finger_toggle_${attempt}`, // Unique ID for toggle actions
+                id: 'finger1', // CRITICAL: Must be static to prevent pointer exhaustion
                 parameters: { pointerType: 'touch' },
                 actions: [
                     { type: 'pointerMove', duration: 0, x: centerX, y: startY },
