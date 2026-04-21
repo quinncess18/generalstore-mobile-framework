@@ -25,7 +25,8 @@ const test = base.extend({
    */
   driver: [
     async ({}, use, workerInfo) => {
-      const device = workerInfo.project.use.deviceConfig ?? DEVICES[0];
+      const projectName = workerInfo.project.name;
+      const device = DEVICES.find(d => d.name === projectName) || DEVICES[0];
 
       console.log(`[appFixture] ${device.name} (${device.udid})`);
 
