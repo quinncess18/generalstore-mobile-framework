@@ -11,7 +11,7 @@ jobs:
   test:
     # CRITICAL: Must be macOS. Linux runners do not support the hardware 
     # acceleration (KVM) required to boot an Android emulator.
-    runs-on: macos-latest 
+    runs-on: macos-13 
 
     steps:
       - name: Checkout Repository
