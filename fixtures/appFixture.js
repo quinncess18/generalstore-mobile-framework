@@ -53,7 +53,7 @@ const test = base.extend({
         `[appFixture] Cloud Emulator — ` +
         `gesture nav: ${hasGestureNav}, ` +
         `scrollPercent: 0.10, ` +
-        `settlePause: 500ms`
+        `settlePause: 1000ms`
       );
 
       await use(driver);

@@ -25,7 +25,8 @@ jobs:
         run: npm install
 
       - name: Start Appium Server
-        run: npx appium &
+        # This removes the security block so your gesture/reset logic works
+        run: npx appium --allow-insecure adb_shell &
 
       - name: Enable KVM group perms
         run: |
