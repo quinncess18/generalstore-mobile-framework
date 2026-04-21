@@ -1,17 +1,17 @@
-name: Mobile Automation Regression (Real Devices)
+name: Mobile Automation (Cloud Emulator)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   test:
-    # CRITICAL: Using 'self-hosted' because GitHub's runners cannot access physical devices.
-    # You must install the GitHub Actions runner software on your local machine.
-    runs-on: self-hosted
+    # CRITICAL: Must be macOS. Linux runners do not support the hardware 
+    # acceleration (KVM) required to boot an Android emulator.
+    runs-on: macos-latest 
 
     steps:
       - name: Checkout Repository
@@ -26,39 +26,19 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Verify Environment (Pre-flight)
-        run: |
-          adb devices
-          npx appium --version
-
       - name: Start Appium Server
-        run: |
-          Start-Process npx.cmd -ArgumentList "appium" -NoNewWindow
-          Start-Sleep -Seconds 5
+        run: npx appium &
 
-      - name: Run All Tests (Parallel)
-        # Uses the 'test' script from package.json
-        # Appium must already be running on the host machine (npm run appium:start)
-        run: npm test
+      - name: Run Tests in Cloud Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 31          # Android 12
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6       # Standard device profile
+          disable-animations: true # Speeds up test execution
+          # This script runs automatically once the emulator is fully booted
+          script: npx playwright test
         env:
-          # Use the local path from GitHub Variables, or default to the relative workspace path
-          APP_PATH: ${{ vars.APP_PATH_LOCAL || './apps/General-Store.apk' }}
-          DEVICE_0_UDID: ${{ vars.DEVICE_0_UDID }}
-          DEVICE_1_UDID: ${{ vars.DEVICE_1_UDID }}
-          NODE_ENV: ci
-
-      - name: Upload Playwright Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30
-
-      - name: Upload Blob Reports (For Merging)
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-blob-reports
-          path: blob-report/
-          retention-days: 7
+          DEVICE_0_UDID: 'emulator-5554'
+          DEVICE_0_SYSTEM_PORT: '8200'
