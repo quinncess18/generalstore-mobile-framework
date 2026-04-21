@@ -33,7 +33,7 @@ test.describe('App Interruptions', () => {
 
       // Step 2: Send app to background for 5 seconds
       console.log('[Diagnostic] Sending app to background for 5s...');
-      await driver.background(5);
+      await driver.execute('mobile: backgroundApp', { seconds: 5 });
 
       // Step 3: Verify app returns to the same screen and state is intact
       await productsPage.waitForScreen();

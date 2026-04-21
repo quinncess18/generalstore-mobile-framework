@@ -139,47 +139,33 @@ class LoginPage {
    * Open the country dropdown and select a country by name.
    * Spinner defaults to "Afghanistan". UiScrollable scrolls the ListView to the target.
    *
-   * Two-step approach to avoid tapping an alphabetical neighbour:
-   *   1. Execute UiScrollable to scroll the target into view (result element discarded).
-   *   2. Pause briefly so the scroll animation finishes.
-   *   3. Re-find the item via a plain XPath (no scroll, fresh coordinates) and click it.
-   *
-   * Do NOT call waitForClickable/waitForDisplayed on the UiScrollable element directly —
-   * those re-execute the selector and trigger a second scroll.
-   *
    * @param {string} country  Exact label e.g. 'India', 'Australia'
    */
   async selectCountry(country) {
+    const current = await this.getSelectedCountry();
+    if (current === country) return;
+
     const spinner = await this.spinnerEl;
     await spinner.waitForDisplayed({ timeout: 5000 });
     await spinner.click();
 
-    // Wait for the dropdown ListView to appear
-    await this.driver.waitUntil(
-      async () => {
-        const list = await this.driver.$(this.countryDropdownList);
-        return list.isDisplayed();
-      },
-      { timeout: 5000, timeoutMsg: 'Country dropdown ListView did not open' }
-    );
+    // Step 1: Execute UiScrollable to find the country and wait for it to be visible.
+    const scrollSelector = this.countryOptionByName(country);
+    await this.driver.$(scrollSelector).waitForDisplayed({ timeout: 10000 });
 
-    // Step 1: scroll the target country into view (element reference discarded)
-    await this.driver.$(this.countryOptionByName(country));
+    // Step 2: Settle-Before-Click
+    // Increased to 800ms to handle large flings on tablets like Xiaomi Pad 6.
+    await this.driver.pause(800);
 
-    // Step 2: brief settle — enough for the animation to stop without risking
-    // auto-dismiss of the dropdown (300 ms was too long on Xiaomi Pad 6).
-    await this.driver.pause(100);
+    // Step 3: Perform the click.
+    // Use an exact text match instead of the UiScrollable locator.
+    const exactItem = await this.driver.$(`//android.widget.TextView[@text="${country}"]`);
 
-    // Step 3: click via plain XPath — no UiScrollable re-execution, coordinates
-    // are captured after the list has stopped moving.
-    // Note: do NOT scope to android.widget.ListView — Xiaomi uses DropDownListView
-    // (a ListView subclass) which XPath class matching does not reach.
-    const exactItem = await this.driver.$(
-      `//android.widget.TextView[@text="${country}"]`
-    );
+    // Wait for the exact item to be exist and displayed in the DOM before clicking.
+    // If inertia carried it off-screen, this ensures we don't try to click a non-existent element.
+    await exactItem.waitForExist({ timeout: 3000 });
     await exactItem.click();
   }
-
   /**
    * Type a name into the "Your Name" field.
    * Clears any existing value first.

@@ -131,32 +131,44 @@ class ProductsPage {
 async getProductPriceByName(productName) {
   await this.driver.pause(this.settlePause);
   const normalizedTarget = this.normalizeProductName(productName);
-  const maxSwipes = 8;
+  const maxSwipes = 15;
 
   for (let attempt = 0; attempt <= maxSwipes; attempt++) {
-    // 1. Fetch current DOM arrays
-    const nameEls = await this.driver.$$(this.productName);
-    const priceEls = await this.driver.$$(this.productPrice);
+  // 1. Fetch current DOM arrays
+  const nameEls = await this.driver.$$(this.productName);
+  const priceEls = await this.driver.$$(this.productPrice);
 
-    // 2. Trim-to-min guard (The OnePlus Asymmetric Buffer Fix)
-    const limit = Math.min(nameEls.length, priceEls.length);
+  // 2. Evaluate visible rows using Y-coordinate matching
+  for (const nameEl of nameEls) {
+    const rawName = await nameEl.getText().catch(() => '');
+    const name = this.normalizeProductName(rawName);
 
-    // 3. Evaluate visible rows
-    for (let i = 0; i < limit; i++) {
-      const rawName = await nameEls[i].getText().catch(() => '');
-      const name = this.normalizeProductName(rawName);
+    if (name === normalizedTarget) {
+      const nameRect = await nameEl.getLocation();
 
-      if (name === normalizedTarget) {
-        const priceText = await priceEls[i].getText().catch(() => '');
-        if (priceText.trim()) {
-          console.log(`[Diagnostic] Found '${normalizedTarget}' at row ${i}. Price: ${priceText}`);
-          return priceText;
-        }
+      // Find the closest price element by Y coordinate
+      let bestPriceEl = null;
+      let minDiff = Infinity;
+      for (const priceEl of priceEls) {
+          const priceRect = await priceEl.getLocation().catch(() => ({ y: Infinity }));
+          const diff = Math.abs(priceRect.y - nameRect.y);
+          if (diff < minDiff) {
+              minDiff = diff;
+              bestPriceEl = priceEl;
+          }
+      }
+
+      if (bestPriceEl && minDiff < 300) {
+          const priceText = await bestPriceEl.getText().catch(() => '');
+          if (priceText.trim()) {
+              console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
+              return priceText;
+          }
       }
     }
+  }
 
-    // 4. Not found? Execute the W3C slow-scroll (The Xiaomi Inertia Fix)
-    if (attempt === maxSwipes) break;
+  // 4. Not found? Execute the W3C slow-scroll (The Xiaomi Inertia Fix)    if (attempt === maxSwipes) break;
 
     console.log(`[Diagnostic] '${normalizedTarget}' not visible. W3C swipe ${attempt + 1}/${maxSwipes}`);
     
@@ -169,13 +181,13 @@ async getProductPriceByName(productName) {
     await this.driver.performActions([
       {
         type: 'pointer',
-        id: 'finger1',
+        id: `finger_price_${Date.now()}_${attempt}`, // Unique ID per scroll prevents session hangs
         parameters: { pointerType: 'touch' },
         actions: [
           { type: 'pointerMove', duration: 0, x: centerX, y: startY },
           { type: 'pointerDown', button: 0 },
-          // 1500ms duration kills the physics engine inertia
-          { type: 'pointerMove', duration: 1500, x: centerX, y: endY },
+          // 1000ms duration is faster but still controlled to prevent excessive fling
+          { type: 'pointerMove', duration: 1000, x: centerX, y: endY },
           { type: 'pointerUp', button: 0 },
         ],
       },
@@ -196,28 +208,41 @@ async getProductPriceByName(productName) {
   async addProductToCartByName(targetProduct) {
     await this.driver.pause(this.settlePause);
     const normalizedTarget = this.normalizeProductName(targetProduct);
-    const maxSwipes = 8;
+    const maxSwipes = 15;
 
     for (let attempt = 0; attempt <= maxSwipes; attempt++) {
         // 1. Fetch current DOM arrays
         const nameEls = await this.driver.$$(this.productName);
         const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
 
-        // 2. Trim-to-min guard (Handles partial rows at screen edges)
-        const limit = Math.min(nameEls.length, addBtns.length);
-
-        // 3. Evaluate visible rows
-        for (let i = 0; i < limit; i++) {
-            const rawName = await nameEls[i].getText().catch(() => '');
+        // 2. Evaluate visible rows using Y-coordinate matching
+        for (const nameEl of nameEls) {
+            const rawName = await nameEl.getText().catch(() => '');
             const name = this.normalizeProductName(rawName);
 
             if (name === normalizedTarget) {
-                const btnText = await addBtns[i].getText().catch(() => '');
-                // Ensure we only click it if it hasn't been added yet
-                if (btnText.toUpperCase() === 'ADD TO CART') {
-                    console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}' at row ${i}`);
-                    await addBtns[i].click();
-                    return;
+                const nameRect = await nameEl.getLocation();
+
+                // Find the closest add button by Y coordinate
+                let bestBtn = null;
+                let minDiff = Infinity;
+                for (const addBtn of addBtns) {
+                    const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
+                    const diff = Math.abs(btnRect.y - nameRect.y);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        bestBtn = addBtn;
+                    }
+                }
+
+                if (bestBtn && minDiff < 300) {
+                    const btnText = await bestBtn.getText().catch(() => '');
+                    // Ensure we only click it if it hasn't been added yet
+                    if (btnText.toUpperCase() === 'ADD TO CART') {
+                        console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
+                        await bestBtn.click();
+                        return;
+                    }
                 }
             }
         }
@@ -229,7 +254,7 @@ async getProductPriceByName(productName) {
         
         const rect = await this.driver.getWindowRect();
         const centerX = Math.round(rect.x + (rect.width / 2));
-        const startY = Math.round(rect.y + (rect.height * 0.72));
+        const startY = Math.round(rect.y + (rect.height * 0.62));
         const endY = Math.round(rect.y + (rect.height * 0.32));
 
         await this.driver.performActions([
@@ -240,7 +265,7 @@ async getProductPriceByName(productName) {
                 actions: [
                     { type: 'pointerMove', duration: 0, x: centerX, y: startY },
                     { type: 'pointerDown', button: 0 },
-                    { type: 'pointerMove', duration: 1500, x: centerX, y: endY },
+                    { type: 'pointerMove', duration: 1000, x: centerX, y: endY },
                     { type: 'pointerUp', button: 0 },
                 ],
             },
@@ -262,26 +287,39 @@ async getProductPriceByName(productName) {
   async toggleCartByName(targetProduct) {
     await this.driver.pause(this.settlePause);
     const normalizedTarget = this.normalizeProductName(targetProduct);
-    const maxSwipes = 8;
+    const maxSwipes = 15;
 
     for (let attempt = 0; attempt <= maxSwipes; attempt++) {
         // 1. Fetch current DOM arrays
         const nameEls = await this.driver.$$(this.productName);
         const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
 
-        // 2. Trim-to-min guard (Handles partial rows at screen edges)
-        const limit = Math.min(nameEls.length, addBtns.length);
-
-        // 3. Evaluate visible rows
-        for (let i = 0; i < limit; i++) {
-            const rawName = await nameEls[i].getText().catch(() => '');
+        // 2. Evaluate visible rows using Y-coordinate matching
+        for (const nameEl of nameEls) {
+            const rawName = await nameEl.getText().catch(() => '');
             const name = this.normalizeProductName(rawName);
 
             if (name === normalizedTarget) {
-                console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}' at row ${i}`);
-                // Unconditional click: bypasses the 'ADD TO CART' text check
-                await addBtns[i].click();
-                return;
+                const nameRect = await nameEl.getLocation();
+
+                // Find the closest add button by Y coordinate
+                let bestBtn = null;
+                let minDiff = Infinity;
+                for (const addBtn of addBtns) {
+                    const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
+                    const diff = Math.abs(btnRect.y - nameRect.y);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        bestBtn = addBtn;
+                    }
+                }
+
+                if (bestBtn && minDiff < 300) {
+                    console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}'`);
+                    // Unconditional click: bypasses the 'ADD TO CART' text check
+                    await bestBtn.click();
+                    return;
+                }
             }
         }
 
@@ -292,7 +330,7 @@ async getProductPriceByName(productName) {
         
         const rect = await this.driver.getWindowRect();
         const centerX = Math.round(rect.x + (rect.width / 2));
-        const startY = Math.round(rect.y + (rect.height * 0.72));
+        const startY = Math.round(rect.y + (rect.height * 0.62));
         const endY = Math.round(rect.y + (rect.height * 0.32));
 
         await this.driver.performActions([
@@ -303,7 +341,7 @@ async getProductPriceByName(productName) {
                 actions: [
                     { type: 'pointerMove', duration: 0, x: centerX, y: startY },
                     { type: 'pointerDown', button: 0 },
-                    { type: 'pointerMove', duration: 1500, x: centerX, y: endY },
+                    { type: 'pointerMove', duration: 1000, x: centerX, y: endY },
                     { type: 'pointerUp', button: 0 },
                 ],
             },
@@ -372,11 +410,28 @@ async getProductPriceByName(productName) {
   async isAddToCartEnabled(productName) {
     const nameEls = await this.driver.$$(this.productName);
     const addBtns = await this.driver.$$(this.addToCart);
-    const limit   = Math.min(nameEls.length, addBtns.length);
-    for (let i = 0; i < limit; i++) {
-      if (this.normalizeProductName(await nameEls[i].getText().catch(() => '')) === this.normalizeProductName(productName)) {
-        const btnText = await addBtns[i].getText().catch(() => '');
-        return btnText.toUpperCase() === 'ADD TO CART';
+    const normalizedTarget = this.normalizeProductName(productName);
+
+    for (const nameEl of nameEls) {
+      const rawName = await nameEl.getText().catch(() => '');
+      if (this.normalizeProductName(rawName) === normalizedTarget) {
+        const nameRect = await nameEl.getLocation();
+        
+        let bestBtn = null;
+        let minDiff = Infinity;
+        for (const addBtn of addBtns) {
+            const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
+            const diff = Math.abs(btnRect.y - nameRect.y);
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestBtn = addBtn;
+            }
+        }
+
+        if (bestBtn && minDiff < 300) {
+            const btnText = await bestBtn.getText().catch(() => '');
+            return btnText.toUpperCase() === 'ADD TO CART';
+        }
       }
     }
     throw new Error(`ProductsPage: ADD TO CART button not found for "${productName}"`);
@@ -399,3 +454,4 @@ async getProductPriceByName(productName) {
 }
 
 module.exports = ProductsPage;
+ ProductsPage;

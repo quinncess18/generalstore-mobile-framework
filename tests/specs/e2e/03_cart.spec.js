@@ -208,8 +208,8 @@ test.describe('Cart', () => {
       // Use longer timeout for 10-item discovery and cart scroll
       test.setTimeout(240000);
 
-      await loginPage.login({ ...users.TC_C01, name: uniqueUsername });
-      await productsPage.waitForScreen();
+      // Pause for 3 seconds before adding items to cart as requested
+      await driver.pause(3000);
 
       const allProducts = Object.values(products);
       
