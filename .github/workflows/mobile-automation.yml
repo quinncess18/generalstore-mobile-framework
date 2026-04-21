@@ -32,10 +32,9 @@ jobs:
           npx appium --version
 
       - name: Start Appium Server
-        shell: bash # CRITICAL: Forces Windows to use Bash for the '&' operator
         run: |
-          npx appium & 
-          sleep 5
+          Start-Process npx.cmd -ArgumentList "appium" -NoNewWindow
+          Start-Sleep -Seconds 5
 
       - name: Run All Tests (Parallel)
         # Uses the 'test' script from package.json
