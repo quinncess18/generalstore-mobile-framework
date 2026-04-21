@@ -16,25 +16,20 @@ const { test: uniqueTest, expect } = require('./uniqueUsername');
  */
 const test = uniqueTest.extend({
   driver: async ({ driver }, use) => {
-    const SPINNER =
-      '//android.widget.Spinner[@resource-id="com.androidsample.generalstore:id/spinnerCountry"]';
-    const NAME_FIELD =
-      '//android.widget.EditText[@resource-id="com.androidsample.generalstore:id/nameField"]';
-    const PRODUCT_LIST =
-      '//android.support.v7.widget.RecyclerView[@resource-id="com.androidsample.generalstore:id/rvProductList"]';
-
-    // isOnLogin is true ONLY IF:
-    // 1. The login components are visible AND
-    // 2. The products list is NOT visible (negative proof against ghost elements).
     const isOnLogin = async () => {
       try {
-        const isProductsVisible = await driver.$(PRODUCT_LIST).isDisplayed().catch(() => false);
-        if (isProductsVisible) return false;
+        const currentActivity = await driver.getCurrentActivity();
+        if (currentActivity !== '.MainActivity') return false;
 
-        const spinner    = await driver.$(SPINNER);
-        const nameField  = await driver.$(NAME_FIELD);
-        return (await spinner.isDisplayed().catch(() => false)) &&
-               (await nameField.isDisplayed().catch(() => false));
+        // Both Login and Products share .MainActivity. We MUST verify a login-specific element.
+        const SPINNER = '//*[@resource-id="com.androidsample.generalstore:id/spinnerCountry"]';
+        const isSpinnerVisible = await driver.$(SPINNER).isDisplayed().catch(() => false);
+        if (!isSpinnerVisible) return false;
+
+        // Ensure the dropdown list is not open, which would block interaction
+        const DROPDOWN_LIST = '//android.widget.ListView';
+        const isDropdownVisible = await driver.$(DROPDOWN_LIST).isDisplayed().catch(() => false);
+        return !isDropdownVisible;
       } catch {
         return false;
       }
@@ -66,6 +61,7 @@ const test = uniqueTest.extend({
       await driver.execute('mobile: startActivity', {
         component: 'com.androidsample.generalstore/.SplashActivity',
         stop: false,
+        intentFlags: '0x14000000', // FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TOP
       });
 // Wait for the login screen to be ready after the splash animation.
 // 15s timeout is standard, but we add a brief settle after it's found.
