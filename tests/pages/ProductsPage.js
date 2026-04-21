@@ -72,16 +72,93 @@ class ProductsPage {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   /**
-   * Wait for the products list to be visible.
+   * Wait for the products screen to be fully loaded and stable.
+   * Uses multiple indicators and extended timeouts for CI environment reliability.
    */
   async waitForScreen() {
-    await this.driver.waitUntil(
-      async () => {
-        const list = await this.driver.$(this.productList);
-        return list.isDisplayed();
-      },
-      { timeout: 15000, timeoutMsg: 'ProductsPage: product list not visible after 15 s' }
-    );
+    // Initial stabilization pause for any in-progress transitions
+    await this.driver.pause(2000);
+    
+    try {
+      // First check the toolbar is visible - faster to render
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const toolbar = await this.driver.$('//android.widget.TextView[@text="Products"]');
+            return toolbar.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'ProductsPage: toolbar title not visible after 20s' }
+      );
+      
+      // Then ensure the product list itself is loaded
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const list = await this.driver.$(this.productList);
+            return list.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'ProductsPage: product list not visible after 20s' }
+      );
+      
+      // Wait for at least one product to be visible in the list
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const names = await this.driver.$$(this.productName);
+            return names.length > 0 && await names[0].isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'ProductsPage: no product names visible after 20s' }
+      );
+      
+      // Verify cart icon is present - important for navigation tests
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const cart = await this.cartIconEl;
+            return cart.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'ProductsPage: cart icon not visible after 20s' }
+      );
+      
+      // Final stabilization pause to ensure animations are complete
+      await this.driver.pause(1000);
+      console.log('[Diagnostic] ProductsPage is fully loaded and stable');
+    } catch (error) {
+      console.log(`[Diagnostic] Error waiting for ProductsPage: ${error.message}`);
+      
+      // Check current package is still our app
+      const pkg = await this.driver.getCurrentPackage();
+      if (pkg !== 'com.androidsample.generalstore') {
+        console.log(`[Warning] Current package is ${pkg}, expected com.androidsample.generalstore`);
+        
+        // Attempt recovery by using mobile: startActivity (safe method)
+        try {
+          await this.driver.execute('mobile: startActivity', {
+            appPackage: 'com.androidsample.generalstore',
+            appActivity: '.MainActivity',
+            stop: false  // CRITICAL: Must be false to avoid killing UIAutomator2
+          });
+          await this.driver.pause(3000);
+        } catch (e) {
+          console.log(`[Error] Failed to restart app: ${e.message}`);
+        }
+      }
+      
+      // Re-throw to let test know this is a critical failure
+      throw error;
+    }
   }
 
   async getAllProductNameElements() {
@@ -414,18 +491,58 @@ async getProductPriceByName(productName) {
   /**
    * Returns the cart item count shown on the toolbar badge.
    * Returns 0 if the badge is not displayed (empty cart).
+   * Enhanced for reliability in CI with retries and explicit waiting.
    * @returns {Promise<number>}
    */
   async getCartCount() {
-    try {
-      const badge = await this.driver.$(this.cartBadge);
-      const displayed = await badge.isDisplayed().catch(() => false);
-      if (!displayed) return 0;
-      const text = await badge.getText().catch(() => '0');
-      return parseInt(text, 10) || 0;
-    } catch {
-      return 0;
+    // Add a small stabilization pause to ensure UI is stable
+    await this.driver.pause(500);
+    
+    // Try multiple times to get the cart count in case of UI updates
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        // Wait a bit longer on each retry
+        if (attempt > 0) {
+          await this.driver.pause(1000 * attempt);
+          console.log(`[Diagnostic] Retry #${attempt} getting cart count`);
+        }
+        
+        // Check if the cart icon itself is visible
+        const cartIcon = await this.cartIconEl;
+        const iconVisible = await cartIcon.isDisplayed().catch(() => false);
+        if (!iconVisible) {
+          console.log('[Diagnostic] Cart icon not visible when checking count');
+          continue; // retry
+        }
+        
+        // First check if badge exists
+        const badge = await this.driver.$(this.cartBadge);
+        const badgeExists = await badge.isExisting().catch(() => false);
+        if (!badgeExists) {
+          console.log('[Diagnostic] Cart badge not in DOM, count=0');
+          return 0;
+        }
+        
+        // Next check if it's visible - invisible badge means empty cart
+        const displayed = await badge.isDisplayed().catch(() => false);
+        if (!displayed) {
+          console.log('[Diagnostic] Cart badge exists but not displayed, count=0');
+          return 0;
+        }
+        
+        // Get badge text and parse count
+        const text = await badge.getText().catch(() => '0');
+        const count = parseInt(text, 10) || 0;
+        
+        console.log(`[Diagnostic] Cart badge visible with count=${count}`);
+        return count;
+      } catch (error) {
+        console.log(`[Diagnostic] Error getting cart count: ${error.message}`);
+        if (attempt === 2) return 0; // last attempt, give up
+      }
     }
+    
+    return 0; // fallback
   }
 
   /**

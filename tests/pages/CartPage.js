@@ -66,13 +66,93 @@ class CartPage {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   /**
-   * Wait for the cart screen to be visible.
+   * Wait for the cart screen to be fully loaded and stable.
+   * Uses multiple indicators and extended timeouts for CI environment reliability.
    */
   async waitForScreen() {
-    await this.driver.waitUntil(
-      async () => (await this.visitWebsiteEl).isDisplayed(),
-      { timeout: 15000, timeoutMsg: 'CartPage: "Visit website" button not visible after 15 s' }
-    );
+    // Initial stabilization pause for any in-progress transitions
+    await this.driver.pause(2000);
+    
+    try {
+      // First check toolbar title - fastest to render
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const toolbar = await this.driver.$('//android.widget.TextView[@text="Cart"]');
+            return toolbar.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'CartPage: toolbar title not visible after 20s' }
+      );
+      
+      // Then verify the cart list is visible
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const list = await this.driver.$(this.cartList);
+            return list.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'CartPage: cart list not visible after 20s' }
+      );
+      
+      // Check for the visit website button which is critical for test
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const btn = await this.visitWebsiteEl;
+            return btn.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'CartPage: "Visit website" button not visible after 20s' }
+      );
+      
+      // Verify terms text is visible to ensure bottom of page is loaded
+      await this.driver.waitUntil(
+        async () => {
+          try {
+            const terms = await this.termsTextEl;
+            return terms.isDisplayed();
+          } catch (e) {
+            return false;
+          }
+        },
+        { timeout: 20000, timeoutMsg: 'CartPage: terms text not visible after 20s' }
+      );
+      
+      // Final stabilization pause to ensure animations are complete
+      await this.driver.pause(1000);
+      console.log('[Diagnostic] CartPage is fully loaded and stable');
+    } catch (error) {
+      console.log(`[Diagnostic] Error waiting for CartPage: ${error.message}`);
+      
+      // Check current package is still our app
+      const pkg = await this.driver.getCurrentPackage();
+      if (pkg !== 'com.androidsample.generalstore') {
+        console.log(`[Warning] Current package is ${pkg}, expected com.androidsample.generalstore`);
+        
+        // Attempt recovery by using mobile: startActivity (safe method)
+        try {
+          await this.driver.execute('mobile: startActivity', {
+            appPackage: 'com.androidsample.generalstore',
+            appActivity: '.SplashActivity',
+            stop: false  // CRITICAL: Must be false to avoid killing UIAutomator2
+          });
+          await this.driver.pause(3000);
+        } catch (e) {
+          console.log(`[Error] Failed to restart app: ${e.message}`);
+        }
+      }
+      
+      // Re-throw to let test know this is a critical failure
+      throw error;
+    }
   }
 
   /**
