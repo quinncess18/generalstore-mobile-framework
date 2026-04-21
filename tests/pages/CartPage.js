@@ -86,6 +86,8 @@ class CartPage {
     const isChecked = (await checkbox.getAttribute('checked')) === 'true';
     if (check !== isChecked) {
       await checkbox.click();
+      // Add stabilization pause to let UI update after checkbox state change
+      await this.driver.pause(800);
     }
   }
 
@@ -108,6 +110,8 @@ class CartPage {
     const btn = await this.backButtonEl;
     await btn.waitForDisplayed({ timeout: 5000 });
     await btn.click();
+    // Add stabilization pause to let navigation complete before returning
+    await this.driver.pause(800);
   }
 
   // ── Assertions ────────────────────────────────────────────────────────────

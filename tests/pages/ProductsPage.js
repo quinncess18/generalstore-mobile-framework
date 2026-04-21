@@ -241,6 +241,8 @@ async getProductPriceByName(productName) {
                     if (btnText.toUpperCase() === 'ADD TO CART') {
                         console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
                         await bestBtn.click();
+                        // Add stabilization pause to let UI update before continuing
+                        await this.driver.pause(800);
                         return;
                     }
                 }
@@ -318,6 +320,8 @@ async getProductPriceByName(productName) {
                     console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}'`);
                     // Unconditional click: bypasses the 'ADD TO CART' text check
                     await bestBtn.click();
+                    // Add stabilization pause to let UI update before continuing
+                    await this.driver.pause(800);
                     return;
                 }
             }

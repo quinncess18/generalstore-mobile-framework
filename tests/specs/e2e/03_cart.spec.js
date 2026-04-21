@@ -71,6 +71,8 @@ test.describe('Cart', () => {
 
       // Close CCT
       await driver.execute('mobile: pressKey', { keycode: 4 });
+      // Add stabilization pause after closing Chrome Custom Tab
+      await driver.pause(1500);
     }
   );
 
@@ -149,6 +151,8 @@ test.describe('Cart', () => {
 
       // Close CCT
       await driver.execute('mobile: pressKey', { keycode: 4 });
+      // Add stabilization pause after closing Chrome Custom Tab
+      await driver.pause(1500);
     }
   );
 
