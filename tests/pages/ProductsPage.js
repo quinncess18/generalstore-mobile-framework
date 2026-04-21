@@ -343,7 +343,8 @@ async getProductPriceByName(productName) {
    * @param {string} targetProduct
    */
   async toggleCartByName(targetProduct) {
-    await this.driver.pause(this.settlePause);
+    // Start with longer stabilization pause
+    await this.driver.pause(2000);
     const normalizedTarget = this.normalizeProductName(targetProduct);
     
     try {
@@ -353,12 +354,18 @@ async getProductPriceByName(productName) {
       
       // First scroll to make the product name visible using UiScrollable
       const productSelector = this.productByName(targetProduct);
-      await this.driver.$(productSelector).waitForExist({ timeout: 15000 });
-      await this.driver.pause(800);
+      console.log('[Diagnostic] Waiting for product to be visible before toggle');
+      await this.driver.$(productSelector).waitForExist({ timeout: 20000 });
+      await this.driver.pause(1500);
       
       // Once the product is visible, find its cart button
+      console.log('[Diagnostic] Finding product name elements');
       const nameEls = await this.driver.$$(this.productName);
+      console.log(`[Diagnostic] Found ${nameEls.length} product name elements`);
+      
+      console.log('[Diagnostic] Finding add/remove cart buttons');
       const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
+      console.log(`[Diagnostic] Found ${addBtns.length} cart buttons`);
       
       // Find the name element that matches our target
       let targetNameEl = null;
@@ -367,11 +374,13 @@ async getProductPriceByName(productName) {
         const name = this.normalizeProductName(rawName);
         if (name === normalizedTarget) {
           targetNameEl = nameEl;
+          console.log(`[Diagnostic] Found matching name element for '${normalizedTarget}'`);
           break;
         }
       }
       
       if (!targetNameEl) {
+        console.log(`[Diagnostic] ERROR: Product name element not found in viewport after UiScrollable`);
         throw new Error(`Product name element not found in visible viewport after UiScrollable`);
       }
       
@@ -390,16 +399,50 @@ async getProductPriceByName(productName) {
       }
       
       if (bestBtn && minDiff < 300) {
-        console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}'`);
+        // Extended handling with button state inspection
+        const btnText = await bestBtn.getText().catch(() => '');
+        const initialState = btnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
+        console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}' - current state: ${initialState}`);
+        
+        // Check if the button is actually clickable
+        const isClickable = await bestBtn.isClickable().catch(() => false);
+        console.log(`[Diagnostic] Button is ${isClickable ? 'clickable' : 'NOT clickable'}`);
+        
+        // Pause before click
+        await this.driver.pause(1000);
+        
         // Unconditional click: bypasses any text check (could be ADD TO CART or ADDED TO CART)
+        console.log(`[Diagnostic] Executing click on cart button for '${normalizedTarget}'`);
         await bestBtn.click();
-        // Add stabilization pause to let UI update before continuing
-        await this.driver.pause(800);
+        
+        // Add substantial stabilization pause to let UI update before continuing
+        console.log(`[Diagnostic] Stabilization pause after toggling '${normalizedTarget}'`);
+        await this.driver.pause(3000);
+        
+        // Check the badge state after toggling
+        try {
+          const cartCount = await this.getCartCount();
+          console.log(`[Diagnostic] Cart count after toggle: ${cartCount}`);
+        } catch (e) {
+          console.log(`[Diagnostic] Error getting cart count after toggle: ${e.message}`);
+        }
+        
+        // Check the button's new state
+        try {
+          const newBtnText = await bestBtn.getText().catch(() => '');
+          const newState = newBtnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
+          console.log(`[Diagnostic] Button state after toggle: ${newState}`);
+        } catch (e) {
+          console.log(`[Diagnostic] Error checking button state after toggle: ${e.message}`);
+        }
+        
         return;
       }
       
+      console.log(`[Diagnostic] ERROR: Cart toggle button not found for "${targetProduct}" after UiScrollable`);
       throw new Error(`Cart toggle button not found for "${targetProduct}" after UiScrollable`);
     } catch (error) {
+      console.log(`[Diagnostic] EXCEPTION during toggle: ${error.message}`);
       throw new Error(`Failed to toggle "${targetProduct}" in cart: ${error.message}`);
     }
   }

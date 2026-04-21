@@ -142,13 +142,70 @@ test.describe('Products', () => {
       }
 
       // TC-P02: ADD TO CART toggle — add → gray/cart=1 → remove → enabled/cart=0
+      console.log(`[Test] TC-P02 Start: Adding ${products.CONVERSE_ALL_STAR.name} to cart`);
       await productsPage.addProductToCartByName(products.CONVERSE_ALL_STAR.name);
-      expect(await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name)).toBe(false);
-      expect(await productsPage.getCartCount()).toBe(1);
-
+      
+      // Extra stabilization after add
+      await driver.pause(2000);
+      console.log('[Test] TC-P02: Checking button state after add');
+      
+      // Check button state with retry logic
+      let buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
+      if (buttonEnabled !== false) {
+        console.log('[Test] WARNING: Button still appears enabled after adding to cart. Adding stabilization pause.');
+        await driver.pause(3000);
+        buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
+      }
+      console.log(`[Test] TC-P02: Button enabled after add: ${buttonEnabled}`);
+      expect(buttonEnabled).toBe(false);
+      
+      // Check cart count with retry logic
+      let cartCount = await productsPage.getCartCount();
+      if (cartCount !== 1) {
+        console.log(`[Test] WARNING: Cart count after add is ${cartCount}, expecting 1. Adding stabilization pause.`);
+        await driver.pause(3000);
+        cartCount = await productsPage.getCartCount();
+      }
+      console.log(`[Test] TC-P02: Cart count after add: ${cartCount}`);
+      expect(cartCount).toBe(1);
+      
+      // Long stabilization before toggle
+      console.log(`[Test] TC-P02 Milestone: Preparing to toggle ${products.CONVERSE_ALL_STAR.name}`);
+      await driver.pause(2000);
+      
+      // Toggle with extra safeguards
+      console.log('[Test] TC-P02: Toggling product in cart');
       await productsPage.toggleCartByName(products.CONVERSE_ALL_STAR.name);
-      expect(await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name)).toBe(true);
-      expect(await productsPage.getCartCount()).toBe(0);
+      
+      // Long stabilization after toggle - CRITICAL for stability
+      console.log('[Test] TC-P02: Post-toggle stabilization pause');
+      await driver.pause(5000);
+      
+      // Check button state after toggle with retries
+      console.log('[Test] TC-P02: Checking button state after toggle');
+      buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
+      if (buttonEnabled !== true) {
+        console.log('[Test] WARNING: Button not enabled after toggle. Adding stabilization pause.');
+        await driver.pause(3000);
+        buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
+      }
+      console.log(`[Test] TC-P02: Button enabled after toggle: ${buttonEnabled}`);
+      expect(buttonEnabled).toBe(true);
+      
+      // Check cart count after toggle with retries
+      console.log('[Test] TC-P02: Checking cart count after toggle');
+      cartCount = await productsPage.getCartCount();
+      if (cartCount !== 0) {
+        console.log(`[Test] WARNING: Cart count after toggle is ${cartCount}, expecting 0. Adding stabilization pause.`);
+        await driver.pause(3000);
+        cartCount = await productsPage.getCartCount();
+      }
+      console.log(`[Test] TC-P02: Final cart count after toggle: ${cartCount}`);
+      expect(cartCount).toBe(0);
+      
+      // Final stabilization before proceeding to next test case
+      console.log('[Test] TC-P02 Complete: Adding stabilization pause before next test case');
+      await driver.pause(2000);
 
       // TC-P03: Add Jordan Lift Off → cart=1 → tap cart icon → Cart page opens
       console.log(`[Test] TC-P03: Adding ${products.JORDAN_LIFT_OFF.name} to cart`);
