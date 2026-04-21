@@ -105,13 +105,38 @@ class CartPage {
 
   /**
    * Tap the back arrow to return to the products screen.
+   * Uses a retry mechanism for improved stability in CI environments.
    */
   async goBack() {
-    const btn = await this.backButtonEl;
-    await btn.waitForDisplayed({ timeout: 5000 });
-    await btn.click();
-    // Add stabilization pause to let navigation complete before returning
-    await this.driver.pause(800);
+    // Add a stabilization pause before attempting to navigate
+    await this.driver.pause(1000);
+    
+    try {
+      // Always get a fresh reference to the back button
+      const btn = await this.backButtonEl;
+      await btn.waitForDisplayed({ timeout: 10000 });
+      
+      // Add a pre-click stabilization pause
+      await this.driver.pause(500);
+      
+      // Click the back button
+      await btn.click();
+      
+      // Add a post-navigation stabilization pause to allow screen transition
+      await this.driver.pause(1500);
+    } catch (error) {
+      // If first attempt fails (e.g., stale element), try again with a fresh reference
+      console.log(`[Diagnostic] First back navigation attempt failed: ${error.message}. Retrying...`);
+      await this.driver.pause(2000); // Longer pause before retry
+      
+      // Get a fresh reference and try again
+      const btn = await this.backButtonEl;
+      await btn.waitForDisplayed({ timeout: 10000 });
+      await btn.click();
+      
+      // Add a post-navigation stabilization pause
+      await this.driver.pause(1500);
+    }
   }
 
   // ── Assertions ────────────────────────────────────────────────────────────
