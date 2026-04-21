@@ -178,22 +178,16 @@ async getProductPriceByName(productName) {
     const startY = Math.round(rect.y + (rect.height * 0.72));
     const endY = Math.round(rect.y + (rect.height * 0.32));
 
-    await this.driver.performActions([
-      {
-        type: 'pointer',
-        id: 'finger1', // CRITICAL: Must be static. Dynamic IDs exhaust Android's max pointer limit and crash UIAutomator2
-        parameters: { pointerType: 'touch' },
-        actions: [
-          { type: 'pointerMove', duration: 0, x: centerX, y: startY },
-          { type: 'pointerDown', button: 0 },
-          // 1000ms duration is faster but still controlled to prevent excessive fling
-          { type: 'pointerMove', duration: 1000, x: centerX, y: endY },
-          { type: 'pointerUp', button: 0 },
-        ],
-      },
-    ]);
-    
-    await this.driver.releaseActions();
+    // Use more reliable mobile: scrollGesture instead of W3C pointer actions
+    // This avoids InteractionController issues in emulator environments
+    await this.driver.execute('mobile: scrollGesture', {
+      left: Math.round(rect.width * 0.3),
+      top: Math.round(startY),
+      width: Math.round(rect.width * 0.4),
+      height: Math.round(rect.height * 0.1),
+      direction: 'up',
+      percent: 0.7,
+    });
     await this.driver.pause(this.settlePause);
   }
 
@@ -249,31 +243,25 @@ async getProductPriceByName(productName) {
             }
         }
 
-        // 4. Not found? Execute the W3C slow-scroll
+        // 4. Not found? Execute mobile: scrollGesture (more reliable in emulators)
         if (attempt === maxSwipes) break;
 
-        console.log(`[Diagnostic] '${normalizedTarget}' ADD TO CART not visible. W3C swipe ${attempt + 1}/${maxSwipes}`);
+        console.log(`[Diagnostic] '${normalizedTarget}' ADD TO CART not visible. mobile: scrollGesture ${attempt + 1}/${maxSwipes}`);
         
         const rect = await this.driver.getWindowRect();
-        const centerX = Math.round(rect.x + (rect.width / 2));
         const startY = Math.round(rect.y + (rect.height * 0.62));
-        const endY = Math.round(rect.y + (rect.height * 0.32));
 
-        await this.driver.performActions([
-            {
-                type: 'pointer',
-                id: 'finger1', // CRITICAL: Must be static to prevent pointer exhaustion
-                parameters: { pointerType: 'touch' },
-                actions: [
-                    { type: 'pointerMove', duration: 0, x: centerX, y: startY },
-                    { type: 'pointerDown', button: 0 },
-                    { type: 'pointerMove', duration: 1000, x: centerX, y: endY },
-                    { type: 'pointerUp', button: 0 },
-                ],
-            },
-        ]);
+        // Use more reliable mobile: scrollGesture instead of W3C pointer actions
+        // This avoids InteractionController issues in emulator environments
+        await this.driver.execute('mobile: scrollGesture', {
+            left: Math.round(rect.width * 0.3),
+            top: Math.round(startY),
+            width: Math.round(rect.width * 0.4),
+            height: Math.round(rect.height * 0.1),
+            direction: 'up',
+            percent: 0.7,
+        });
         
-        await this.driver.releaseActions();
         await this.driver.pause(this.settlePause);
     }
 
@@ -327,31 +315,25 @@ async getProductPriceByName(productName) {
             }
         }
 
-        // 4. Not found? Execute the W3C slow-scroll
+        // 4. Not found? Execute mobile: scrollGesture (more reliable in emulators)
         if (attempt === maxSwipes) break;
 
-        console.log(`[Diagnostic] '${normalizedTarget}' not visible for toggle. W3C swipe ${attempt + 1}/${maxSwipes}`);
+        console.log(`[Diagnostic] '${normalizedTarget}' not visible for toggle. mobile: scrollGesture ${attempt + 1}/${maxSwipes}`);
         
         const rect = await this.driver.getWindowRect();
-        const centerX = Math.round(rect.x + (rect.width / 2));
         const startY = Math.round(rect.y + (rect.height * 0.62));
-        const endY = Math.round(rect.y + (rect.height * 0.32));
 
-        await this.driver.performActions([
-            {
-                type: 'pointer',
-                id: 'finger1', // CRITICAL: Must be static to prevent pointer exhaustion
-                parameters: { pointerType: 'touch' },
-                actions: [
-                    { type: 'pointerMove', duration: 0, x: centerX, y: startY },
-                    { type: 'pointerDown', button: 0 },
-                    { type: 'pointerMove', duration: 1000, x: centerX, y: endY },
-                    { type: 'pointerUp', button: 0 },
-                ],
-            },
-        ]);
+        // Use more reliable mobile: scrollGesture instead of W3C pointer actions
+        // This avoids InteractionController issues in emulator environments
+        await this.driver.execute('mobile: scrollGesture', {
+            left: Math.round(rect.width * 0.3),
+            top: Math.round(startY), 
+            width: Math.round(rect.width * 0.4),
+            height: Math.round(rect.height * 0.1),
+            direction: 'up',
+            percent: 0.7,
+        });
         
-        await this.driver.releaseActions();
         await this.driver.pause(this.settlePause);
     }
 
