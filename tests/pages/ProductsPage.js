@@ -61,7 +61,7 @@ class ProductsPage {
     // UiScrollable: scroll product RecyclerView to a product by name, then return it
     /** @type {(productName: string) => string} */
     this.productByName = (productName) =>
-      `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvProductList")).scrollIntoView(new UiSelector().text("${productName}").resourceId("com.androidsample.generalstore:id/productName"))`;
+      `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvProductList")).scrollIntoView(new UiSelector().text("${productName}"))`;
   }
 
   // ── Getters ───────────────────────────────────────────────────────────────
@@ -206,19 +206,31 @@ class ProductsPage {
   async ensureProductVisible(targetProduct) {
     const normalizedTarget = this.normalizeProductName(targetProduct);
     
-    // First, check if it's already perfectly visible
-    const nameEls = await this.driver.$$(this.productName);
-    for (const nameEl of nameEls) {
-      const rawName = await nameEl.getText().catch(() => '');
-      if (this.normalizeProductName(rawName) === normalizedTarget) {
-        return; // Already on screen! No need to invoke UiScrollable.
+    // Initial stabilization pause
+    await this.driver.pause(1000);
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        // Check if it's already visible
+        const nameEls = await this.driver.$$(this.productName);
+        for (const nameEl of nameEls) {
+          const rawName = await nameEl.getText().catch(() => '');
+          if (this.normalizeProductName(rawName) === normalizedTarget) {
+            return; // Already on screen!
+          }
+        }
+        
+        // If not visible, use UiScrollable with a generous timeout
+        const productSelector = this.productByName(targetProduct);
+        await this.driver.$(productSelector).waitForExist({ timeout: 20000 });
+        await this.driver.pause(1000);
+        return;
+      } catch (e) {
+        if (attempt === 2) throw e;
+        console.log(`[Diagnostic] Attempt ${attempt} failed to scroll to ${targetProduct}. Retrying...`);
+        await this.driver.pause(2000);
       }
     }
-    
-    // If not visible, use UiScrollable
-    const productSelector = this.productByName(targetProduct);
-    await this.driver.$(productSelector).waitForExist({ timeout: 10000 });
-    await this.driver.pause(800);
   }
 
   /**
