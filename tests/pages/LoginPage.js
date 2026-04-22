@@ -189,8 +189,21 @@ class LoginPage {
   async enterName(name) {
     const field = await this.nameFieldEl;
     await field.waitForDisplayed({ timeout: 5000 });
+    
+    // Step 1: Preliminary clear
     await field.clearValue();
+    await this.driver.pause(500);
+
+    // Step 2: Set value (e.g. spaces for negative tests)
     await field.setValue(name);
+    
+    // Step 3: Verify and retry if it didn't take (critical for CI)
+    const currentVal = await field.getText().catch(() => '');
+    if (name.trim() === '' && currentVal !== '' && currentVal !== 'Enter name here') {
+      console.log(`[Diagnostic] Name field not clear (value: '${currentVal}'). Retrying clear...`);
+      await field.clearValue();
+      await field.setValue(name);
+    }
     
     // Check if keyboard is active before attempting to hide to prevent hanging
     try {
