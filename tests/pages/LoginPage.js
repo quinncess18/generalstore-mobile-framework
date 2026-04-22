@@ -38,8 +38,7 @@ class LoginPage {
     /** @type {(country: string) => string} */
     this.countryOptionByName = (country) =>
       `android=new UiScrollable(new UiSelector().className("android.widget.ListView"))` +
-      `.setMaxSearchSwipes(25)` +
-      `.scrollIntoView(new UiSelector().text("${country}").className("android.widget.TextView"))`;
+      `.scrollIntoView(new UiSelector().text("${country}"))`;
 
     this.nameField =
       '//android.widget.EditText[@resource-id="com.androidsample.generalstore:id/nameField"]';
@@ -150,10 +149,15 @@ class LoginPage {
       await spinner.waitForDisplayed({ timeout: 5000 });
       await spinner.click();
 
+      // Wait for the dropdown ListView to be present and displayed before scrolling
+      const list = await this.driver.$(this.countryDropdownList);
+      await list.waitForDisplayed({ timeout: 5000 }).catch(() => {});
+
       try {
         // Step 1: Execute UiScrollable to find the country and wait for it to be visible.
         const scrollSelector = this.countryOptionByName(country);
-        await this.driver.$(scrollSelector).waitForDisplayed({ timeout: 15000 });
+        // Increase timeout to 30s for long lists in CI/Emulators
+        await this.driver.$(scrollSelector).waitForDisplayed({ timeout: 30000 });
 
         // Step 2: Settle-Before-Click
         // Increased to 800ms to handle large flings on tablets like Xiaomi Pad 6.
