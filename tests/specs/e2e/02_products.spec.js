@@ -212,7 +212,7 @@ test.describe('Products', () => {
       await productsPage.addProductToCartByName(products.JORDAN_LIFT_OFF.name);
       
       // Ensure cart badge shows 1 with retry logic (critical for test flow)
-      let cartCount = await productsPage.getCartCount();
+      cartCount = await productsPage.getCartCount();
       if (cartCount !== 1) {
         console.log(`[Test] WARNING: Cart count is ${cartCount}, expecting 1. Adding extra stabilization pause.`);
         await driver.pause(2000);
