@@ -230,27 +230,47 @@ class CartPage {
    * @returns {Promise<string[]>}
    */
   async getCartProductNames() {
+    console.log('[Diagnostic] getCartProductNames: Starting collection...');
     const seen = new Set();
 
     let prevSize = -1;
     let scrolls = 0;
 
+    // Reset list to top first to ensure we catch all names if previously scrolled
+    console.log('[Diagnostic] getCartProductNames: Resetting list to top...');
+    await this.driver.$(
+      `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollToBeginning(10)`
+    ).catch((e) => console.log(`[Diagnostic] getCartProductNames: Reset scroll failed: ${e.message}`));
+
     while (scrolls < 10) {
       const els = await this.driver.$$(this.cartProductName);
+      console.log(`[Diagnostic] getCartProductNames: Found ${els.length} name elements in view`);
+      
       for (const el of els) {
         const text = await el.getText().catch(() => '');
-        if (text) seen.add(text);
+        if (text) {
+          if (!seen.has(text)) {
+            console.log(`[Diagnostic] getCartProductNames: New item found: '${text}'`);
+            seen.add(text);
+          }
+        }
       }
-      if (seen.size === prevSize) break;
+      
+      if (seen.size === prevSize) {
+        console.log('[Diagnostic] getCartProductNames: No new items after scroll, stopping.');
+        break;
+      }
       prevSize = seen.size;
 
+      console.log('[Diagnostic] getCartProductNames: Scrolling forward...');
       await this.driver.$(
         `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollForward()`
       ).catch(() => {});
-      await this.driver.pause(300);
+      await this.driver.pause(500); // Increased pause for list stability
       scrolls++;
     }
 
+    console.log(`[Diagnostic] getCartProductNames: Collection complete. Total items: ${seen.size}`);
     return Array.from(seen);
   }
 

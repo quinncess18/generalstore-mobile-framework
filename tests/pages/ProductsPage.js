@@ -386,7 +386,36 @@ class ProductsPage {
             // Ensure we only click it if it hasn't been added yet
             if (btnText.toUpperCase() === 'ADD TO CART') {
               console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
+              
+              // Get initial cart count for verification
+              const initialCount = await this.getCartCount();
+              
               await bestBtn.click();
+              
+              // Verification loop: Wait for button text to change or cart count to increase
+              let clicked = false;
+              for (let v = 0; v < 5; v++) {
+                await this.driver.pause(1000);
+                const currentText = await bestBtn.getText().catch(() => '');
+                const currentCount = await this.getCartCount();
+                
+                if (currentText.toUpperCase() !== 'ADD TO CART' || currentCount > initialCount) {
+                  console.log(`[Diagnostic] Click confirmed for '${normalizedTarget}'. New text: '${currentText}', Count: ${currentCount}`);
+                  clicked = true;
+                  break;
+                }
+                
+                // If not registered after 2s, try clicking again once
+                if (v === 2) {
+                  console.log(`[Diagnostic] Click not registered for '${normalizedTarget}', retrying click...`);
+                  await bestBtn.click();
+                }
+              }
+              
+              if (!clicked) {
+                throw new Error(`Click on ADD TO CART for "${productName}" was not registered by the app`);
+              }
+              
               // Add stabilization pause to let UI update before continuing
               await this.driver.pause(800);
               return; // Success
