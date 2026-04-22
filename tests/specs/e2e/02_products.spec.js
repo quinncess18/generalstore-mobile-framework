@@ -265,14 +265,6 @@ test.describe('Products', () => {
   test('TC-P05: Add two products — cart=2, both buttons gray → tap cart → Cart page opens',
     { tag: ['@regression'] },
     async ({ driver }) => {
-      // FORCE RESET: Ensure we start clean at the Login screen.
-      // mobile: startActivity is the project-safe way to relaunch without killing instrumentation.
-      await driver.execute('mobile: startActivity', {
-        component: 'com.androidsample.generalstore/.SplashActivity',
-        stop: false,
-      });
-      await loginPage.waitForScreen();
-
       await loginPage.login(users.TC_P05);
       await productsPage.waitForScreen();
 

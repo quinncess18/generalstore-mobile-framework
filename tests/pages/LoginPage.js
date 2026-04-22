@@ -38,7 +38,7 @@ class LoginPage {
     /** @type {(country: string) => string} */
     this.countryOptionByName = (country) =>
       `android=new UiScrollable(new UiSelector().className("android.widget.ListView"))` +
-      `.setMaxSearchSwipes(50)` +
+      `.setMaxSearchSwipes(25)` +
       `.scrollIntoView(new UiSelector().text("${country}").className("android.widget.TextView"))`;
 
     this.nameField =
@@ -145,26 +145,37 @@ class LoginPage {
     const current = await this.getSelectedCountry();
     if (current === country) return;
 
-    const spinner = await this.spinnerEl;
-    await spinner.waitForDisplayed({ timeout: 5000 });
-    await spinner.click();
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const spinner = await this.spinnerEl;
+      await spinner.waitForDisplayed({ timeout: 5000 });
+      await spinner.click();
 
-    // Step 1: Execute UiScrollable to find the country and wait for it to be visible.
-    const scrollSelector = this.countryOptionByName(country);
-    await this.driver.$(scrollSelector).waitForDisplayed({ timeout: 10000 });
+      try {
+        // Step 1: Execute UiScrollable to find the country and wait for it to be visible.
+        const scrollSelector = this.countryOptionByName(country);
+        await this.driver.$(scrollSelector).waitForDisplayed({ timeout: 15000 });
 
-    // Step 2: Settle-Before-Click
-    // Increased to 800ms to handle large flings on tablets like Xiaomi Pad 6.
-    await this.driver.pause(800);
+        // Step 2: Settle-Before-Click
+        // Increased to 800ms to handle large flings on tablets like Xiaomi Pad 6.
+        await this.driver.pause(800);
 
-    // Step 3: Perform the click.
-    // Use an exact text match instead of the UiScrollable locator.
-    const exactItem = await this.driver.$(`//android.widget.TextView[@text="${country}"]`);
+        // Step 3: Perform the click.
+        // Use an exact text match instead of the UiScrollable locator.
+        const exactItem = await this.driver.$(`//android.widget.TextView[@text="${country}"]`);
 
-    // Wait for the exact item to be exist and displayed in the DOM before clicking.
-    // If inertia carried it off-screen, this ensures we don't try to click a non-existent element.
-    await exactItem.waitForExist({ timeout: 3000 });
-    await exactItem.click();
+        // Wait for the exact item to be exist and displayed in the DOM before clicking.
+        // If inertia carried it off-screen, this ensures we don't try to click a non-existent element.
+        await exactItem.waitForExist({ timeout: 3000 });
+        await exactItem.click();
+        return; // Success
+      } catch (error) {
+        console.log(`[Diagnostic] Attempt ${attempt} failed to find country ${country}.`);
+        // Close dropdown via hardware back before retrying
+        await this.driver.execute('mobile: pressKey', { keycode: 4 });
+        await this.driver.pause(1000);
+      }
+    }
+    throw new Error(`Failed to find country "${country}" after retries.`);
   }
   /**
    * Type a name into the "Your Name" field.
@@ -176,7 +187,11 @@ class LoginPage {
     await field.waitForDisplayed({ timeout: 5000 });
     await field.clearValue();
     await field.setValue(name);
-    await this.driver.hideKeyboard().catch(() => {});
+    
+    // Check if keyboard is active before attempting to hide to prevent hanging
+    if (await this.driver.isKeyboardShown()) {
+      await this.driver.hideKeyboard().catch(() => {});
+    }
   }
 
   /**

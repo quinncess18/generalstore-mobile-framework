@@ -168,7 +168,8 @@ test.describe('Cart', () => {
       await loginPage.login({ ...users.TC_C03_RELOGIN, name: uniqueUsername });
       await productsPage.waitForScreen();
 
-      await productsPage.addProductToCartByName(products.NIKE_SFB_JUNGLE.name);
+      // Use a product that is not the absolute last item to avoid bottom-edge clipping issues on some screens
+      await productsPage.addProductToCartByName(products.CONVERSE_ALL_STAR.name);
       await productsPage.goToCart();
       await cartPage.waitForScreen();
 
@@ -214,6 +215,9 @@ test.describe('Cart', () => {
 
       // Pause for 3 seconds before adding items to cart as requested
       await driver.pause(3000);
+
+      await loginPage.login({ ...users.TC_PRODUCTS, name: uniqueUsername });
+      await productsPage.waitForScreen();
 
       const allProducts = Object.values(products);
       

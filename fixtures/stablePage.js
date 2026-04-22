@@ -15,7 +15,7 @@ const { test: uniqueTest, expect } = require('./uniqueUsername');
  *   test('my test', async ({ driver, uniqueUsername }) => { ... });
  */
 const test = uniqueTest.extend({
-  driver: async ({ driver }, use) => {
+  _stablePageReset: [async ({ driver }, use) => {
     const isOnLogin = async () => {
       try {
         const currentActivity = await driver.getCurrentActivity();
@@ -35,9 +35,22 @@ const test = uniqueTest.extend({
       }
     };
 
+    // Check if we are currently on the Splash screen (e.g. fresh boot from appFixture)
+    // If so, wait for it to naturally transition to the Login screen instead of forcing a restart.
+    try {
+      const currentActivity = await driver.getCurrentActivity();
+      if (currentActivity === '.SplashActivity') {
+        console.log('[stablePage] App is on SplashActivity. Waiting for natural transition to Login...');
+        await driver.waitUntil(isOnLogin, { timeout: 10000 }).catch(() => {});
+      }
+    } catch (e) {
+      // Ignore errors getting current activity
+    }
+
     // Skip reset if already on the login screen — avoids a redundant SplashActivity
     // launch on the very first test of each worker (appFixture already lands on login).
     if (!await isOnLogin()) {
+      console.log('[stablePage] Not on Login screen. Forcing reset via mobile: startActivity...');
       // Launch SplashActivity to reset the app to the login screen.
       //
       // Why not terminateApp + activateApp:
@@ -85,8 +98,8 @@ await driver.pause(settle);
       await driver.pause(1500);
     }
 
-    await use(driver);
-  },
+    await use();
+  }, { auto: true }],
 });
 
 module.exports = { test, expect };

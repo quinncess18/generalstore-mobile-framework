@@ -199,95 +199,45 @@ class ProductsPage {
     return String(text).replace(/\s+/g, ' ').trim();
   }
 
-/**
- * Scroll to a product by name and return its price text (e.g. "$ 280.97").
- * In CI emulator: uses UiScrollable for reliable scrolling from UIAutomator2.
- * @param {string} productName  Exact product name text
- * @returns {Promise<string>}
- */
-async getProductPriceByName(productName) {
-  await this.driver.pause(this.settlePause);
-  const normalizedTarget = this.normalizeProductName(productName);
-  
-  try {
-    // CI-SPECIFIC APPROACH: Use UiScrollable for direct element targeting
-    // This is more reliable in emulators and CI environments
-    console.log(`[Diagnostic] Using UiScrollable to find '${normalizedTarget}' for price`);
-    
-    // First scroll to make the product name visible using UiScrollable
-    const productSelector = this.productByName(productName);
-    await this.driver.$(productSelector).waitForExist({ timeout: 15000 });
-    await this.driver.pause(800);
-    
-    // Once the product is visible, find its price
-    const nameEls = await this.driver.$$(this.productName);
-    const priceEls = await this.driver.$$(this.productPrice);
-    
-    // Find the name element that matches our target
-    let targetNameEl = null;
-    for (const nameEl of nameEls) {
-      const rawName = await nameEl.getText().catch(() => '');
-      const name = this.normalizeProductName(rawName);
-      if (name === normalizedTarget) {
-        targetNameEl = nameEl;
-        break;
-      }
-    }
-    
-    if (!targetNameEl) {
-      throw new Error(`Product name element not found in visible viewport after UiScrollable`);
-    }
-    
-    // Find the closest price element using Y-coordinate matching
-    const nameRect = await targetNameEl.getLocation();
-    let bestPriceEl = null;
-    let minDiff = Infinity;
-    
-    for (const priceEl of priceEls) {
-      const priceRect = await priceEl.getLocation().catch(() => ({ y: Infinity }));
-      const diff = Math.abs(priceRect.y - nameRect.y);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestPriceEl = priceEl;
-      }
-    }
-    
-    if (bestPriceEl && minDiff < 300) {
-      const priceText = await bestPriceEl.getText().catch(() => '');
-      if (priceText.trim()) {
-        console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
-        return priceText;
-      }
-    }
-    
-    throw new Error(`Price element not found for "${productName}" after UiScrollable`);
-  } catch (error) {
-    throw new Error(`Failed to get price for "${productName}": ${error.message}`);
-  }
-}
-
   /**
- * Scroll to a product by name and tap its ADD TO CART button.
- * In CI emulator: uses UiScrollable for reliable scrolling from UIAutomator2.
- * @param {string} targetProduct
- */
-  async addProductToCartByName(targetProduct) {
-    await this.driver.pause(this.settlePause);
+   * Helper method to ensure a product is visible on screen.
+   * Checks if it's already visible to prevent UiScrollable timeout flakiness.
+   */
+  async ensureProductVisible(targetProduct) {
     const normalizedTarget = this.normalizeProductName(targetProduct);
     
+    // First, check if it's already perfectly visible
+    const nameEls = await this.driver.$$(this.productName);
+    for (const nameEl of nameEls) {
+      const rawName = await nameEl.getText().catch(() => '');
+      if (this.normalizeProductName(rawName) === normalizedTarget) {
+        return; // Already on screen! No need to invoke UiScrollable.
+      }
+    }
+    
+    // If not visible, use UiScrollable
+    const productSelector = this.productByName(targetProduct);
+    await this.driver.$(productSelector).waitForExist({ timeout: 10000 });
+    await this.driver.pause(800);
+  }
+
+  /**
+   * Scroll to a product by name and return its price text (e.g. "$ 280.97").
+   * In CI emulator: uses UiScrollable for reliable scrolling from UIAutomator2.
+   * @param {string} productName  Exact product name text
+   * @returns {Promise<string>}
+   */
+  async getProductPriceByName(productName) {
+    await this.driver.pause(this.settlePause);
+    const normalizedTarget = this.normalizeProductName(productName);
+    
     try {
-      // CI-SPECIFIC APPROACH: Use UiScrollable for direct element targeting
-      // This is more reliable in emulators and CI environments
-      console.log(`[Diagnostic] Using UiScrollable to find '${normalizedTarget}'`);
+      console.log(`[Diagnostic] Ensuring '${normalizedTarget}' is visible for price`);
+      await this.ensureProductVisible(productName);
       
-      // First scroll to make the product name visible using UiScrollable
-      const productSelector = this.productByName(targetProduct);
-      await this.driver.$(productSelector).waitForExist({ timeout: 15000 });
-      await this.driver.pause(800);
-      
-      // Once the product is visible, find its ADD TO CART button
+      // Once the product is visible, find its price
       const nameEls = await this.driver.$$(this.productName);
-      const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
+      const priceEls = await this.driver.$$(this.productPrice);
       
       // Find the name element that matches our target
       let targetNameEl = null;
@@ -301,42 +251,143 @@ async getProductPriceByName(productName) {
       }
       
       if (!targetNameEl) {
-        throw new Error(`Product name element not found in visible viewport after UiScrollable`);
+        throw new Error(`Product name element not found in visible viewport`);
       }
       
-      // Find the closest ADD TO CART button using Y-coordinate matching
+      // Find the closest price element using Y-coordinate matching
       const nameRect = await targetNameEl.getLocation();
-      let bestBtn = null;
+      let bestPriceEl = null;
       let minDiff = Infinity;
       
-      for (const addBtn of addBtns) {
-        const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
-        const diff = Math.abs(btnRect.y - nameRect.y);
+      for (const priceEl of priceEls) {
+        const priceRect = await priceEl.getLocation().catch(() => ({ y: Infinity }));
+        const diff = Math.abs(priceRect.y - nameRect.y);
         if (diff < minDiff) {
           minDiff = diff;
-          bestBtn = addBtn;
+          bestPriceEl = priceEl;
         }
       }
       
-      if (bestBtn && minDiff < 300) {
-        const btnText = await bestBtn.getText().catch(() => '');
-        // Ensure we only click it if it hasn't been added yet
-        if (btnText.toUpperCase() === 'ADD TO CART') {
-          console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
-          await bestBtn.click();
-          // Add stabilization pause to let UI update before continuing
-          await this.driver.pause(800);
-          return;
+      if (bestPriceEl && minDiff < 300) {
+        const priceText = await bestPriceEl.getText().catch(() => '');
+        if (priceText.trim()) {
+          console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
+          return priceText;
         }
       }
       
-      throw new Error(`ADD TO CART button not found for "${targetProduct}" after UiScrollable`);
+      throw new Error(`Price element not found for "${productName}"`);
+    } catch (error) {
+      throw new Error(`Failed to get price for "${productName}": ${error.message}`);
+    }
+  }
+
+  /**
+   * Scroll to a product by name and tap its ADD TO CART button.
+   * In CI emulator: uses UiScrollable for reliable scrolling from UIAutomator2.
+   * @param {string} targetProduct
+   */
+  async addProductToCartByName(targetProduct) {
+    await this.driver.pause(this.settlePause);
+    const normalizedTarget = this.normalizeProductName(targetProduct);
+    
+    try {
+      console.log(`[Diagnostic] Using UiScrollable/ensureProductVisible to find '${normalizedTarget}'`);
+      
+      // CI-SPECIFIC APPROACH: Retry loop to handle StaleElementReferenceException and UiScrollable flakiness
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          if (attempt > 1) {
+            console.log(`[Diagnostic] Retry #${attempt} for adding '${normalizedTarget}' to cart`);
+            await this.driver.pause(1000);
+          }
+          
+          // Ensure it's on screen (skips scroll if already visible)
+          await this.ensureProductVisible(targetProduct);
+          
+          // Once the product is visible, find its ADD TO CART button
+          const nameEls = await this.driver.$$(this.productName);
+          const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
+          
+          // Find the name element that matches our target
+          let targetNameEl = null;
+          for (const nameEl of nameEls) {
+            const rawName = await nameEl.getText().catch(() => '');
+            const name = this.normalizeProductName(rawName);
+            if (name === normalizedTarget) {
+              targetNameEl = nameEl;
+              break;
+            }
+          }
+          
+          if (!targetNameEl) {
+            throw new Error(`Product name element not found in visible viewport`);
+          }
+          
+          // Find the closest ADD TO CART button using Y-coordinate matching
+          const nameRect = await targetNameEl.getLocation();
+          let bestBtn = null;
+          let minDiff = Infinity;
+          
+          for (const addBtn of addBtns) {
+            const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
+            const diff = Math.abs(btnRect.y - nameRect.y);
+            if (diff < minDiff) {
+              minDiff = diff;
+              bestBtn = addBtn;
+            }
+          }
+          
+          if (bestBtn && minDiff < 300) {
+            const btnText = await bestBtn.getText().catch(() => '');
+            // Ensure we only click it if it hasn't been added yet
+            if (btnText.toUpperCase() === 'ADD TO CART') {
+              console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
+              await bestBtn.click();
+              // Add stabilization pause to let UI update before continuing
+              await this.driver.pause(800);
+              return; // Success
+            } else {
+              console.log(`[Diagnostic] Button text is '${btnText}', expected 'ADD TO CART'`);
+              return; // Already added, no error
+            }
+          }
+          
+          throw new Error(`ADD TO CART button not found for "${targetProduct}"`);
+        } catch (error) {
+          lastError = error;
+          console.log(`[Diagnostic] Attempt ${attempt} failed: ${error.message}`);
+
+          // Nudge the screen up slightly in case the button is cut off at the bottom edge
+          try {
+            console.log(`[Diagnostic] Nudging screen to reveal hidden button...`);
+            const rect = await this.driver.getWindowRect();
+            const centerX = Math.round(rect.width / 2);
+            await this.driver.performActions([{
+              type: 'pointer', id: 'nudge_finger', parameters: { pointerType: 'touch' },
+              actions: [
+                { type: 'pointerMove', duration: 0, x: centerX, y: Math.round(rect.height * 0.6) },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerMove', duration: 500, x: centerX, y: Math.round(rect.height * 0.4) },
+                { type: 'pointerUp', button: 0 }
+              ]
+            }]);
+            await this.driver.releaseActions();
+            await this.driver.pause(1000);
+          } catch (e) {
+            // ignore nudge errors
+          }
+        }
+      }
+      
+      throw lastError;
     } catch (error) {
       throw new Error(`Failed to add "${targetProduct}" to cart: ${error.message}`);
     }
-}
+  }
 
-/**
+  /**
    * Toggles a product in/out of the cart by name.
    * State-agnostic: It clicks the button unconditionally, ignoring the button's text/state.
    * In CI emulator: uses UiScrollable for reliable scrolling from UIAutomator2.
@@ -348,99 +399,126 @@ async getProductPriceByName(productName) {
     const normalizedTarget = this.normalizeProductName(targetProduct);
     
     try {
-      // CI-SPECIFIC APPROACH: Use UiScrollable for direct element targeting
-      // This is more reliable in emulators and CI environments
-      console.log(`[Diagnostic] Using UiScrollable to find '${normalizedTarget}' for toggling`);
+      console.log(`[Diagnostic] Using UiScrollable/ensureProductVisible to find '${normalizedTarget}' for toggling`);
       
-      // First scroll to make the product name visible using UiScrollable
-      const productSelector = this.productByName(targetProduct);
-      console.log('[Diagnostic] Waiting for product to be visible before toggle');
-      await this.driver.$(productSelector).waitForExist({ timeout: 20000 });
-      await this.driver.pause(1500);
-      
-      // Once the product is visible, find its cart button
-      console.log('[Diagnostic] Finding product name elements');
-      const nameEls = await this.driver.$$(this.productName);
-      console.log(`[Diagnostic] Found ${nameEls.length} product name elements`);
-      
-      console.log('[Diagnostic] Finding add/remove cart buttons');
-      const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
-      console.log(`[Diagnostic] Found ${addBtns.length} cart buttons`);
-      
-      // Find the name element that matches our target
-      let targetNameEl = null;
-      for (const nameEl of nameEls) {
-        const rawName = await nameEl.getText().catch(() => '');
-        const name = this.normalizeProductName(rawName);
-        if (name === normalizedTarget) {
-          targetNameEl = nameEl;
-          console.log(`[Diagnostic] Found matching name element for '${normalizedTarget}'`);
-          break;
-        }
-      }
-      
-      if (!targetNameEl) {
-        console.log(`[Diagnostic] ERROR: Product name element not found in viewport after UiScrollable`);
-        throw new Error(`Product name element not found in visible viewport after UiScrollable`);
-      }
-      
-      // Find the closest cart button using Y-coordinate matching
-      const nameRect = await targetNameEl.getLocation();
-      let bestBtn = null;
-      let minDiff = Infinity;
-      
-      for (const addBtn of addBtns) {
-        const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
-        const diff = Math.abs(btnRect.y - nameRect.y);
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestBtn = addBtn;
-        }
-      }
-      
-      if (bestBtn && minDiff < 300) {
-        // Extended handling with button state inspection
-        const btnText = await bestBtn.getText().catch(() => '');
-        const initialState = btnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
-        console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}' - current state: ${initialState}`);
-        
-        // Check if the button is actually clickable
-        const isClickable = await bestBtn.isClickable().catch(() => false);
-        console.log(`[Diagnostic] Button is ${isClickable ? 'clickable' : 'NOT clickable'}`);
-        
-        // Pause before click
-        await this.driver.pause(1000);
-        
-        // Unconditional click: bypasses any text check (could be ADD TO CART or ADDED TO CART)
-        console.log(`[Diagnostic] Executing click on cart button for '${normalizedTarget}'`);
-        await bestBtn.click();
-        
-        // Add substantial stabilization pause to let UI update before continuing
-        console.log(`[Diagnostic] Stabilization pause after toggling '${normalizedTarget}'`);
-        await this.driver.pause(3000);
-        
-        // Check the badge state after toggling
+      // CI-SPECIFIC APPROACH: Retry loop to handle StaleElementReferenceException
+      let lastError;
+      for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          const cartCount = await this.getCartCount();
-          console.log(`[Diagnostic] Cart count after toggle: ${cartCount}`);
-        } catch (e) {
-          console.log(`[Diagnostic] Error getting cart count after toggle: ${e.message}`);
+          if (attempt > 1) {
+            console.log(`[Diagnostic] Retry #${attempt} for finding/clicking toggle button for '${normalizedTarget}'`);
+            await this.driver.pause(1000);
+          }
+          
+          // Ensure it's on screen
+          await this.ensureProductVisible(targetProduct);
+          
+          // Once the product is visible, find its cart button
+          console.log('[Diagnostic] Finding product name elements');
+          const nameEls = await this.driver.$$(this.productName);
+          console.log(`[Diagnostic] Found ${nameEls.length} product name elements`);
+          
+          console.log('[Diagnostic] Finding add/remove cart buttons');
+          const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
+          console.log(`[Diagnostic] Found ${addBtns.length} cart buttons`);
+          
+          // Find the name element that matches our target
+          let targetNameEl = null;
+          for (const nameEl of nameEls) {
+            const rawName = await nameEl.getText().catch(() => '');
+            const name = this.normalizeProductName(rawName);
+            if (name === normalizedTarget) {
+              targetNameEl = nameEl;
+              console.log(`[Diagnostic] Found matching name element for '${normalizedTarget}'`);
+              break;
+            }
+          }
+          
+          if (!targetNameEl) {
+            throw new Error(`Product name element not found in visible viewport`);
+          }
+          
+          // Find the closest cart button using Y-coordinate matching
+          const nameRect = await targetNameEl.getLocation();
+          let bestBtn = null;
+          let minDiff = Infinity;
+          
+          for (const addBtn of addBtns) {
+            const btnRect = await addBtn.getLocation().catch(() => ({ y: Infinity }));
+            const diff = Math.abs(btnRect.y - nameRect.y);
+            if (diff < minDiff) {
+              minDiff = diff;
+              bestBtn = addBtn;
+            }
+          }
+          
+          if (bestBtn && minDiff < 300) {
+            // Extended handling with button state inspection
+            const btnText = await bestBtn.getText().catch(() => '');
+            const initialState = btnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
+            console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}' - current state: ${initialState}`);
+            
+            // Check if the button is actually clickable
+            const isClickable = await bestBtn.isClickable().catch(() => false);
+            console.log(`[Diagnostic] Button is ${isClickable ? 'clickable' : 'NOT clickable'}`);
+            
+            // Unconditional click: bypasses any text check (could be ADD TO CART or ADDED TO CART)
+            console.log(`[Diagnostic] Executing click on cart button for '${normalizedTarget}'`);
+            await bestBtn.click();
+            
+            // Add substantial stabilization pause to let UI update before continuing
+            console.log(`[Diagnostic] Stabilization pause after toggling '${normalizedTarget}'`);
+            await this.driver.pause(3000);
+            
+            // Check the badge state after toggling
+            try {
+              const cartCount = await this.getCartCount();
+              console.log(`[Diagnostic] Cart count after toggle: ${cartCount}`);
+            } catch (e) {
+              console.log(`[Diagnostic] Error getting cart count after toggle: ${e.message}`);
+            }
+            
+            // Check the button's new state
+            try {
+              const newBtnText = await bestBtn.getText().catch(() => '');
+              const newState = newBtnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
+              console.log(`[Diagnostic] Button state after toggle: ${newState}`);
+            } catch (e) {
+              console.log(`[Diagnostic] Error checking button state after toggle: ${e.message}`);
+            }
+            
+            return; // Success, exit retry loop
+          } else {
+             throw new Error(`Cart toggle button not found for "${targetProduct}"`);
+          }
+        } catch (error) {
+          lastError = error;
+          console.log(`[Diagnostic] Attempt ${attempt} failed: ${error.message}`);
+
+          // Nudge the screen up slightly in case the button is cut off at the bottom edge
+          try {
+            console.log(`[Diagnostic] Nudging screen to reveal hidden button...`);
+            const rect = await this.driver.getWindowRect();
+            const centerX = Math.round(rect.width / 2);
+            await this.driver.performActions([{
+              type: 'pointer', id: 'nudge_finger', parameters: { pointerType: 'touch' },
+              actions: [
+                { type: 'pointerMove', duration: 0, x: centerX, y: Math.round(rect.height * 0.6) },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pointerMove', duration: 500, x: centerX, y: Math.round(rect.height * 0.4) },
+                { type: 'pointerUp', button: 0 }
+              ]
+            }]);
+            await this.driver.releaseActions();
+            await this.driver.pause(1000);
+          } catch (e) {
+            // ignore nudge errors
+          }
         }
-        
-        // Check the button's new state
-        try {
-          const newBtnText = await bestBtn.getText().catch(() => '');
-          const newState = newBtnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
-          console.log(`[Diagnostic] Button state after toggle: ${newState}`);
-        } catch (e) {
-          console.log(`[Diagnostic] Error checking button state after toggle: ${e.message}`);
-        }
-        
-        return;
       }
       
-      console.log(`[Diagnostic] ERROR: Cart toggle button not found for "${targetProduct}" after UiScrollable`);
-      throw new Error(`Cart toggle button not found for "${targetProduct}" after UiScrollable`);
+      console.log(`[Diagnostic] ERROR: Exhausted all retries for toggling "${targetProduct}"`);
+      throw lastError;
     } catch (error) {
       console.log(`[Diagnostic] EXCEPTION during toggle: ${error.message}`);
       throw new Error(`Failed to toggle "${targetProduct}" in cart: ${error.message}`);
@@ -604,16 +682,13 @@ async getProductPriceByName(productName) {
       const normalizedTarget = this.normalizeProductName(productName);
       
       // CI-SPECIFIC APPROACH: Use UiScrollable for direct element targeting
-      console.log(`[Diagnostic] Using UiScrollable to find '${normalizedTarget}' for button state check`);
+      console.log(`[Diagnostic] Using ensureProductVisible to find '${normalizedTarget}' for button state check`);
       
-      // First scroll to make the product visible using UiScrollable
       try {
-        const productSelector = this.productByName(productName);
-        await this.driver.$(productSelector).waitForExist({ timeout: 15000 });
-        await this.driver.pause(800);
+        await this.ensureProductVisible(productName);
       } catch (error) {
-        console.log(`[Diagnostic] UiScrollable failed to find '${normalizedTarget}': ${error.message}`);
-        // If UiScrollable fails, fall back to checking visible elements
+        console.log(`[Diagnostic] ensureProductVisible failed to find '${normalizedTarget}': ${error.message}`);
+        // Fall back to checking whatever is currently visible
       }
       
       // Once we've scrolled to the approximate position, check visible elements
@@ -681,4 +756,3 @@ async getProductPriceByName(productName) {
 }
 
 module.exports = ProductsPage;
- ProductsPage;

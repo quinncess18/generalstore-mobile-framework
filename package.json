@@ -4,7 +4,7 @@
   "description": "Playwright + Appium mobile automation framework for General Store Android App",
   "main": "index.js",
   "scripts": {
-    "test": "npx playwright test"
+    "test": "node scripts/run-parallel.js"
   },
   "dependencies": {
     "webdriverio": "^8.36.1"

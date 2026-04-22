@@ -1,36 +1,27 @@
 // @ts-check
 /**
- * Central device configuration for the multi-device Appium test framework.
+ * Central device configuration for the Appium test framework.
  *
  * All values can be overridden via environment variables — no code changes needed
  * for CI/CD pipelines or when switching to different hardware.
  *
  * CI/CD usage examples:
  *
- *   # Run on both real devices (default):
+ *   # Run on emulator (default):
  *   npm test
  *
  *   # Override Appium server (remote Appium node, Docker, etc.):
  *   APPIUM_HOST=192.168.1.100 APPIUM_PORT=4723 npm test
  *
- *   # Override APK path:
- *   APP_PATH=/builds/artifacts/General-Store.apk npm test
- *
- *   # Override device 0 (OnePlus 12):
- *   DEVICE_0_UDID=emulator-5554 DEVICE_0_SYSTEM_PORT=8200 npm test
- *
- *   # Override device 1 (Xiaomi Pad 6):
- *   DEVICE_1_UDID=emulator-5556 DEVICE_1_SYSTEM_PORT=8201 npm test
- *
- *   # Single-device run (use only DEVICES[0] with 1 worker):
- *   npx playwright test --workers=1
+ *   # Set multiple dynamic devices in CI:
+ *   DEVICE_0_UDID=emulator-5554 DEVICE_1_UDID=emulator-5556 npm test
  */
 
 const path = require('path');
 const fs = require('fs');
 
 // ---------------------------------------------------------------------------
-// Appium server — single Appium 2.x instance connected to both real devices
+// Appium server — single Appium 2.x instance
 // ---------------------------------------------------------------------------
 const APPIUM_SERVER = {
   protocol: 'http',
@@ -47,36 +38,50 @@ const _defaultApkPath = path.resolve(__dirname, '..', 'apps', 'General-Store.apk
 const APK_PATH = process.env.APP_PATH || (fs.existsSync(_defaultApkPath) ? _defaultApkPath : null);
 
 // ---------------------------------------------------------------------------
-// Device registry — add, remove, or reorder devices here.
-// Worker 0 → DEVICES[0], Worker 1 → DEVICES[1], etc.
-// workers: DEVICES.length in playwright.config.js keeps them in sync automatically.
-//
-// DEVICE_COUNT — limit how many devices are active without editing this file.
-//   DEVICE_COUNT=1 npm test   → only DEVICES[0] runs (1 worker)
-//   DEVICE_COUNT=2 npm test   → both devices run (2 workers, default)
+// Device registry (Dynamically scales via Environment Variables for CI)
 // ---------------------------------------------------------------------------
-const _allDevices = [
-  {
-    name: 'OnePlus 12',
-    udid: process.env.DEVICE_0_UDID || '7be9397b',
-    systemPort: parseInt(process.env.DEVICE_0_SYSTEM_PORT || '8200', 10),
-    chromeDriverPort: parseInt(process.env.DEVICE_0_CHROMEDRIVER_PORT || '9515', 10),
-    testTimeout: 180000,  // 3 min — aligned with observed OnePlus TC-C02 runtime
-    // scrollPercent: safe for gesture nav — 0.22 triggers the OnePlus OS app-switcher
-    scrollPercent: parseFloat(process.env.DEVICE_0_SCROLL_PERCENT || '0.10'),
-    // settlePause: extra wait after UiScrollable before $$() snapshots (RecyclerView inertia)
-    settlePause: parseInt(process.env.DEVICE_0_SETTLE_PAUSE || '800', 10),
-  },
-  {
-    name: 'Xiaomi Pad 6',
-    udid: process.env.DEVICE_1_UDID || 'ce9c0b3b',
-    systemPort: parseInt(process.env.DEVICE_1_SYSTEM_PORT || '8201', 10),
-    chromeDriverPort: parseInt(process.env.DEVICE_1_CHROMEDRIVER_PORT || '9516', 10),
-    testTimeout: 180000,  // 3 min — tablet is slower, especially on multi-product tests
-    scrollPercent: parseFloat(process.env.DEVICE_1_SCROLL_PERCENT || '0.22'),
-    settlePause: parseInt(process.env.DEVICE_1_SETTLE_PAUSE || '300', 10),
-  },
-];
+const _allDevices = [];
+let hasEnvDevices = false;
+
+// Check for up to 10 devices defined via environment variables
+for (let i = 0; i < 10; i++) {
+  if (process.env[`DEVICE_${i}_UDID`]) {
+    hasEnvDevices = true;
+    _allDevices.push({
+      name: process.env[`DEVICE_${i}_NAME`] || `Device ${i}`,
+      udid: process.env[`DEVICE_${i}_UDID`],
+      systemPort: parseInt(process.env[`DEVICE_${i}_SYSTEM_PORT`] || String(8200 + i), 10),
+      chromeDriverPort: parseInt(process.env[`DEVICE_${i}_CHROMEDRIVER_PORT`] || String(9515 + i), 10),
+      testTimeout: parseInt(process.env[`DEVICE_${i}_TIMEOUT`] || '180000', 10),
+      scrollPercent: parseFloat(process.env[`DEVICE_${i}_SCROLL_PERCENT`] || '0.10'),
+      settlePause: parseInt(process.env[`DEVICE_${i}_SETTLE_PAUSE`] || '800', 10),
+    });
+  }
+}
+
+// Fallback for local testing if no environment variables are set
+if (!hasEnvDevices) {
+  _allDevices.push(
+    {
+      name: 'Pixel 5 (Local)',
+      udid: 'emulator-5554',
+      systemPort: 8200,
+      chromeDriverPort: 9515,
+      testTimeout: 180000,
+      scrollPercent: 0.10,
+      settlePause: 800,
+    },
+    {
+      name: 'Pixel Tablet',
+      udid: 'emulator-5556',
+      systemPort: 8201,
+      chromeDriverPort: 9516,
+      testTimeout: 180000,
+      scrollPercent: 0.10,
+      settlePause: 800,
+    }
+  );
+}
 
 const _deviceCount = process.env.DEVICE_COUNT
   ? parseInt(process.env.DEVICE_COUNT, 10)
