@@ -243,55 +243,85 @@ class ProductsPage {
     await this.driver.pause(this.settlePause);
     const normalizedTarget = this.normalizeProductName(productName);
     
-    try {
-      console.log(`[Diagnostic] Ensuring '${normalizedTarget}' is visible for price`);
-      await this.ensureProductVisible(productName);
-      
-      // Once the product is visible, find its price
-      const nameEls = await this.driver.$$(this.productName);
-      const priceEls = await this.driver.$$(this.productPrice);
-      
-      // Find the name element that matches our target
-      let targetNameEl = null;
-      for (const nameEl of nameEls) {
-        const rawName = await nameEl.getText().catch(() => '');
-        const name = this.normalizeProductName(rawName);
-        if (name === normalizedTarget) {
-          targetNameEl = nameEl;
-          break;
+    let lastError;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        if (attempt > 1) {
+          console.log(`[Diagnostic] Retry #${attempt} for getting price of '${normalizedTarget}'`);
+          await this.driver.pause(1000);
+        }
+
+        console.log(`[Diagnostic] Ensuring '${normalizedTarget}' is visible for price`);
+        await this.ensureProductVisible(productName);
+        
+        // Once the product is visible, find its price
+        const nameEls = await this.driver.$$(this.productName);
+        const priceEls = await this.driver.$$(this.productPrice);
+        
+        // Find the name element that matches our target
+        let targetNameEl = null;
+        for (const nameEl of nameEls) {
+          const rawName = await nameEl.getText().catch(() => '');
+          const name = this.normalizeProductName(rawName);
+          if (name === normalizedTarget) {
+            targetNameEl = nameEl;
+            break;
+          }
+        }
+        
+        if (!targetNameEl) {
+          throw new Error(`Product name element not found in visible viewport`);
+        }
+        
+        // Find the closest price element using Y-coordinate matching
+        const nameRect = await targetNameEl.getLocation();
+        let bestPriceEl = null;
+        let minDiff = Infinity;
+        
+        for (const priceEl of priceEls) {
+          const priceRect = await priceEl.getLocation().catch(() => ({ y: Infinity }));
+          const diff = Math.abs(priceRect.y - nameRect.y);
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestPriceEl = priceEl;
+          }
+        }
+        
+        if (bestPriceEl && minDiff < 300) {
+          const priceText = await bestPriceEl.getText().catch(() => '');
+          if (priceText.trim()) {
+            console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
+            return priceText;
+          }
+        }
+        
+        throw new Error(`Price element not found for "${productName}"`);
+      } catch (error) {
+        lastError = error;
+        console.log(`[Diagnostic] Attempt ${attempt} failed to get price: ${error.message}`);
+
+        // Nudge the screen up slightly in case the price is cut off at the bottom edge
+        try {
+          console.log(`[Diagnostic] Nudging screen to reveal hidden price...`);
+          const rect = await this.driver.getWindowRect();
+          const centerX = Math.round(rect.width / 2);
+          await this.driver.performActions([{
+            type: 'pointer', id: 'nudge_finger_price', parameters: { pointerType: 'touch' },
+            actions: [
+              { type: 'pointerMove', duration: 0, x: centerX, y: Math.round(rect.height * 0.6) },
+              { type: 'pointerDown', button: 0 },
+              { type: 'pointerMove', duration: 500, x: centerX, y: Math.round(rect.height * 0.4) },
+              { type: 'pointerUp', button: 0 }
+            ]
+          }]);
+          await this.driver.releaseActions();
+          await this.driver.pause(1000);
+        } catch (e) {
+          // ignore nudge errors
         }
       }
-      
-      if (!targetNameEl) {
-        throw new Error(`Product name element not found in visible viewport`);
-      }
-      
-      // Find the closest price element using Y-coordinate matching
-      const nameRect = await targetNameEl.getLocation();
-      let bestPriceEl = null;
-      let minDiff = Infinity;
-      
-      for (const priceEl of priceEls) {
-        const priceRect = await priceEl.getLocation().catch(() => ({ y: Infinity }));
-        const diff = Math.abs(priceRect.y - nameRect.y);
-        if (diff < minDiff) {
-          minDiff = diff;
-          bestPriceEl = priceEl;
-        }
-      }
-      
-      if (bestPriceEl && minDiff < 300) {
-        const priceText = await bestPriceEl.getText().catch(() => '');
-        if (priceText.trim()) {
-          console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
-          return priceText;
-        }
-      }
-      
-      throw new Error(`Price element not found for "${productName}"`);
-    } catch (error) {
-      throw new Error(`Failed to get price for "${productName}": ${error.message}`);
     }
+    throw new Error(`Failed to get price for "${productName}" after 3 attempts: ${lastError.message}`);
   }
 
   /**

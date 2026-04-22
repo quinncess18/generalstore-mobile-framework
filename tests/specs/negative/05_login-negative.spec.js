@@ -20,7 +20,9 @@ test.describe('Login — Negative', () => {
 
   test('TC-L-NEG01: [Negative] Empty name — India, Male — toast shown, stays on Login',
     { tag: ['@smoke', '@regression'] },
-    async () => {
+    async ({ driver }) => {
+      // Small stabilization pause
+      await driver.pause(3000);
       await loginPage.attemptLoginWithoutName(users.TC_L_NEG01);
       const toastText = await loginPage.getToastText(3000);
       expect(toastText.toLowerCase()).toContain('please enter your name');
@@ -32,12 +34,11 @@ test.describe('Login — Negative', () => {
 
   test('TC-L-NEG02: [Negative] Spaces-only name — Philippines, Female — toast shown, stays on Login',
     { tag: ['@regression'] },
-    async () => {
+    async ({ driver }) => {
       test.setTimeout(120000);
-      await loginPage.selectCountry(users.TC_L_NEG02.country);
-      await loginPage.enterName(users.TC_L_NEG02.name);
-      await loginPage.selectGender(users.TC_L_NEG02.gender);
-      await loginPage.tapLetsShop();
+      // Small stabilization pause
+      await driver.pause(3000);
+      await loginPage.login(users.TC_L_NEG02);
       const toastText = await loginPage.getToastText(3000);
       expect(toastText.toLowerCase()).toContain('please enter your name');
       expect(await loginPage.isDisplayed()).toBe(true);

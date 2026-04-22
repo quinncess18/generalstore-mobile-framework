@@ -255,11 +255,45 @@ class CartPage {
   }
 
   /**
+   * Scroll through the entire cart list and return all product prices.
    * @returns {Promise<string[]>}
    */
   async getCartProductPrices() {
-    const els = await this.driver.$$(this.cartProductPrice);
-    return els.map((el) => el.getText());
+    const seen = new Set();
+    const prices = [];
+
+    let prevSize = -1;
+    let scrolls = 0;
+
+    // Reset list to top first to ensure we catch all prices if previously scrolled
+    await this.driver.$(
+      `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollToBeginning(10)`
+    ).catch(() => {});
+
+    while (scrolls < 10) {
+      const nameEls = await this.driver.$$(this.cartProductName);
+      const priceEls = await this.driver.$$(this.cartProductPrice);
+      
+      for (let i = 0; i < nameEls.length; i++) {
+        const name = await nameEls[i].getText().catch(() => '');
+        if (name && !seen.has(name)) {
+          seen.add(name);
+          const price = await priceEls[i].getText().catch(() => '');
+          prices.push(price);
+        }
+      }
+      
+      if (seen.size === prevSize) break;
+      prevSize = seen.size;
+
+      await this.driver.$(
+        `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollForward()`
+      ).catch(() => {});
+      await this.driver.pause(300);
+      scrolls++;
+    }
+
+    return prices;
   }
 
   /**

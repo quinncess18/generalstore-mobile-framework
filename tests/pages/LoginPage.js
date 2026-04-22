@@ -193,8 +193,14 @@ class LoginPage {
     await field.setValue(name);
     
     // Check if keyboard is active before attempting to hide to prevent hanging
-    if (await this.driver.isKeyboardShown()) {
-      await this.driver.hideKeyboard().catch(() => {});
+    try {
+      if (await this.driver.isKeyboardShown()) {
+        await this.driver.hideKeyboard().catch(() => {});
+        // Settle pause after hiding keyboard
+        await this.driver.pause(800);
+      }
+    } catch (e) {
+      console.log(`[Diagnostic] Failed to check/hide keyboard: ${e.message}`);
     }
   }
 
@@ -206,6 +212,7 @@ class LoginPage {
     const el = gender === 'Female' ? await this.radioFemaleEl : await this.radioMaleEl;
     await el.waitForDisplayed({ timeout: 5000 });
     await el.click();
+    await this.driver.pause(500);
   }
 
   /**
@@ -214,6 +221,8 @@ class LoginPage {
   async tapLetsShop() {
     const btn = await this.letsShopEl;
     await btn.waitForDisplayed({ timeout: 5000 });
+    // Settle pause before critical action
+    await this.driver.pause(500);
     await btn.click();
   }
 
