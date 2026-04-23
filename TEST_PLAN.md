@@ -3,7 +3,7 @@
 Tracks all test coverage across suites in this repository.
 
 **Execution model:** Tests run in parallel across two real devices simultaneously.
-Worker 0 → Pixel 5 (Local) (`7be9397b`), Worker 1 → Pixel Tablet (`ce9c0b3b`).
+Worker 0 → Pixel 5 (Local) (`emulator-5554`), Worker 1 → Pixel Tablet (`emulator-5556`).
 
 ---
 

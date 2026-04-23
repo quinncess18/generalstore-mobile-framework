@@ -6,13 +6,14 @@ An enterprise-grade, high-performance mobile automation suite built with **Playw
 
 ## 🚀 Project Overview
 
-This suite provides comprehensive End-to-End (E2E) and Negative test coverage across the application's core shopping flows. By leveraging the **Taqelah-inspired** architecture, the framework ensures stability on real devices (Pixel 5 (Local) and Pixel Tablet) through custom synchronization fixtures and viewport-aware interaction strategies.
+This suite provides comprehensive End-to-End (E2E) and Negative test coverage across the application's core shopping flows. By leveraging the **Taqelah-inspired** architecture, the framework ensures stability on real devices (**Pixel 5 (Local)** and **Pixel Tablet**) through custom synchronization fixtures and viewport-aware interaction strategies.
 
 ### **Core Capabilities**
 *   **Parallel Execution:** Dynamic scaling using one Playwright worker per connected device.
 *   **Persistent Sessions:** Worker-scoped Appium sessions that persist across multiple test files for maximum speed.
 *   **State Stabilization:** Custom `stablePage` fixture utilizing `mobile: startActivity` for ultra-fast, non-destructive app resets.
-*   **Device-Aware Interaction:** Targeted mitigations for OS-level gesture navigation (OnePlus) and tablet-specific rendering (Xiaomi).
+*   **Silent Execution:** All `[Diagnostic]` and `[Test]` logs are silenced by default for clean CI output.
+*   **Device-Aware Interaction:** Targeted mitigations for OS-level gesture navigation and tablet-specific rendering.
 
 ---
 
@@ -20,15 +21,15 @@ This suite provides comprehensive End-to-End (E2E) and Negative test coverage ac
 
 | Layer | Technology | Purpose |
 |---|---|---|
-| **Test Runner** | [Playwright](https://playwright.dev/) | Orchestration, parallelization, and rich reporting. |
+| **Test Runner** | [Playwright](https://project.microsoft.com/playwright) | Orchestration, parallelization, and rich reporting. |
 | **Mobile Driver** | [WebdriverIO](https://webdriver.io/) | High-level API for remote Appium command execution. |
 | **Automation Engine** | [Appium 2.x](http://appium.io/) | Cross-platform mobile automation server. |
-| **Android Driver** | [UIAutomator2](https://github.com/appium/appium-uiautomator2-driver) | Native Android automation engine (API 28+). |
+| **Android Driver** | [UIAutomator2](https://github.com/appium/appium-uiautomator2-driver) | Native Android automation engine (API 28+). |        
 | **Language** | JavaScript (Node.js) | Flexible, asynchronous scripting without a build step. |
 
 ---
 
-## 🏗️ Architecture & Design Patterns
+## 🏛️ Architecture & Design Patterns
 
 The framework follows a modular, decoupled architecture to ensure long-term maintainability and scalability.
 
@@ -38,14 +39,12 @@ Located in `tests/pages/`, every screen (Login, Products, Cart) is encapsulated 
 ### **2. The stablePage Strategy**
 To avoid the overhead of full app restarts, the `stablePage` fixture resets the UI to the login screen before every test using `mobile: startActivity`. This is a "non-destructive" reset that preserves the UIAutomator2 instrumentation, preventing the common "404 Invalid Session" errors associated with `terminateApp`.
 
-### **3. Data-Driven Testing**
-Test inputs are completely decoupled from logic. 
-*   **`tests/data/users.js`**: Stores localized login credentials (countries, special-char names).
-*   **`tests/data/products.js`**: Defines the product catalog constants used for dynamic discovery.
+### **3. Centralized Diagnostic Logging**
+The framework uses a centralized `Logger.js` utility. Logs are categorized into `[Test]` (flow milestones) and `[Diagnostic]` (internal state/retries). By default, these are suppressed to keep the CI console clean.
 
 ---
 
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```bash
 mobile-automation-framework/
@@ -59,7 +58,9 @@ mobile-automation-framework/
 ├── tests/
 │   ├── data/                    # JSON-based test data and constants
 │   ├── pages/                   # Page Object Model (POM) implementation
-│   └── specs/                   # Categorized test suites (E2E, Negative)
+│   ├── specs/                   # Categorized test suites (E2E, Negative)
+│   └── utils/
+│       └── Logger.js            # Centralized conditional logging utility
 ├── global-setup.js              # Environment pre-flight (APK & Appium verification)
 ├── playwright.config.js         # Core runner configuration (Scaling & Workers)
 └── TEST_PLAN.md                 # Scenario breakdown and coverage status
@@ -81,16 +82,20 @@ npm run test:cart       # Shopping cart and payment gateway
 npm run test:negative   # Input validation and error handling
 ```
 
+### **Diagnostic Logging (Verbose Mode)**
+To see detailed diagnostic information and test milestones, set the `DEBUG` environment variable to `true`:
+```bash
+# Windows (PowerShell)
+$env:DEBUG='true'; npm test
+
+# Linux/macOS
+DEBUG=true npm test
+```
+
 ### **Advanced CI/CD Overrides**
 The framework is fully CI-ready, allowing environment-level overrides for infrastructure-specific paths:
 ```bash
 APPIUM_HOST=127.0.0.1 DEVICE_0_UDID=<udid> APP_PATH=/tmp/app.apk npm test
-```
-
-### **Integrated Reporting**
-Detailed HTML reports are generated after every run. For parallel executions, per-worker "blob reports" are automatically merged into a single, unified view for easier analysis.
-```bash
-npm run report:merge && npm run report
 ```
 
 ---
@@ -100,13 +105,13 @@ npm run report:merge && npm run report
 | Symptom | Diagnosis | Resolution |
 |---|---|---|
 | **Session Drops (404)** | `terminateApp` was called. | **Rule:** Always use `mobile: startActivity` for resets. |
-| **Gesture Nav Interference** | Pixel 5 (Local) scroll too deep. | Framework uses `scrollPercent: 0.10` for OnePlus stability. |
-| **Spinner Race Condition** | UI state not settled. | Hardened via `split-scroll` pattern and `500ms` settle pause. |
+| **Gesture Nav Interference** | Pixel 5 (Local) scroll too deep. | Framework uses `scrollPercent: 0.10` for Pixel stability. |
+| **Spinner Race Condition** | UI state not settled. | Hardened via `split-scroll` pattern and `800ms` settle pause. |
 | **Stale Element Reference** | Viewport recycled too fast. | W3C action swipes used with `1500ms` duration for stability. |
 
 ---
 
-## 🌍 Global Portability & CI/CD Setup
+## 🌐 Global Portability & CI/CD Setup
 
 This framework is designed to be fully portable. If you fork this repository, follow these steps to set up your own CI/CD pipeline:
 
@@ -125,7 +130,7 @@ This is already included in the `npm run appium:start` script.
 
 ---
 
-## 🎖️ Credits & Acknowledgments
+## 🏅 Credits & Acknowledgments
 
 This framework is built upon the enterprise-grade testing architecture and design patterns established in the **[Taqelah Lab Project](https://github.com/quinncess18/taqelah-lab-project-test)**. As my first project, the Taqelah web framework served as the foundational baseline for the architectural and organizational strategies implemented in this mobile suite, particularly in its approach to:
 
@@ -137,7 +142,7 @@ This project represents the evolution of the **Taqelah Automation Standard**, ad
 
 ---
 
-## 🏁 How to Scale
+## 📐 How to Scale
 To add a new device to the matrix:
 1. Connect the device via USB/ADB.
 2. Add a new entry to `config/devices.config.js` with a unique `systemPort`.
