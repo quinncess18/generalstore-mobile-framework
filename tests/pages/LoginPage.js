@@ -199,7 +199,7 @@ class LoginPage {
     
     // Step 3: Verify and retry if it didn't take (critical for CI)
     const currentVal = await field.getText().catch(() => '');
-    if (name.trim() === '' && currentVal !== '' && currentVal !== 'Enter name here') {
+    if (currentVal !== name && currentVal !== 'Enter name here') {
       console.log(`[Diagnostic] Name field not clear (value: '${currentVal}'). Retrying clear...`);
       await field.clearValue();
       await field.setValue(name);
@@ -242,13 +242,17 @@ class LoginPage {
   /**
    * Full happy-path login.
    * @param {{ country: string, name: string, gender?: 'Male' | 'Female' }} opts
+   * @param {boolean} [submit=true] - Whether to tap the Let's Shop button automatically
    */
-  async login({ country, name, gender = 'Female' }) {
+  async login({ country, name, gender = 'Female' }, submit = true) {
     await this.waitForScreen();
     await this.selectCountry(country);
     await this.enterName(name);
     await this.selectGender(gender);
-    await this.tapLetsShop();
+    
+    if (submit) {
+      await this.tapLetsShop();
+    }
   }
 
   /**
