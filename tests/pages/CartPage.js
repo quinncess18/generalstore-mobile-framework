@@ -294,12 +294,20 @@ class CartPage {
       const nameEls = await this.driver.$$(this.cartProductName);
       const priceEls = await this.driver.$$(this.cartProductPrice);
       
-      for (let i = 0; i < nameEls.length; i++) {
+      // SAFETY FIX: Only loop up to the shortest array length to prevent Out of Bounds errors
+      const loopBound = Math.min(nameEls.length, priceEls.length);
+      
+      for (let i = 0; i < loopBound; i++) {
         const name = await nameEls[i].getText().catch(() => '');
+        
         if (name && !seen.has(name)) {
           seen.add(name);
-          const price = await priceEls[i].getText().catch(() => '');
-          prices.push(price);
+          
+          // EXTRA GUARD: Ensure the element exists before calling getText()
+          if (priceEls[i]) {
+            const price = await priceEls[i].getText().catch(() => '');
+            prices.push(price);
+          }
         }
       }
       
@@ -309,7 +317,9 @@ class CartPage {
       await this.driver.$(
         `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollForward()`
       ).catch(() => {});
-      await this.driver.pause(300);
+      
+      // Slightly bumping the pause might also help CI settle the DOM after a scroll
+      await this.driver.pause(500); 
       scrolls++;
     }
 
