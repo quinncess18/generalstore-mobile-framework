@@ -1,5 +1,7 @@
 // @ts-check
 
+const { debugLog } = require('../utils/Logger');
+
 /**
  * ProductsPage — Page Object Model for the General Store products list screen.
  *
@@ -134,9 +136,9 @@ class ProductsPage {
       
       // Final stabilization pause to ensure animations are complete
       await this.driver.pause(1000);
-      console.log('[Diagnostic] ProductsPage is fully loaded and stable');
+      debugLog('ProductsPage is fully loaded and stable');
     } catch (error) {
-      console.log(`[Diagnostic] Error waiting for ProductsPage: ${error.message}`);
+      debugLog(`Error waiting for ProductsPage: ${error.message}`);
       
       // Check current package is still our app
       const pkg = await this.driver.getCurrentPackage();
@@ -227,7 +229,7 @@ class ProductsPage {
         return;
       } catch (e) {
         if (attempt === 2) throw e;
-        console.log(`[Diagnostic] Attempt ${attempt} failed to scroll to ${targetProduct}. Retrying...`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Attempt ${attempt} failed to scroll to ${targetProduct}. Retrying...`);
         await this.driver.pause(2000);
       }
     }
@@ -247,11 +249,11 @@ class ProductsPage {
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         if (attempt > 1) {
-          console.log(`[Diagnostic] Retry #${attempt} for getting price of '${normalizedTarget}'`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Retry #${attempt} for getting price of '${normalizedTarget}'`);
           await this.driver.pause(1000);
         }
 
-        console.log(`[Diagnostic] Ensuring '${normalizedTarget}' is visible for price`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Ensuring '${normalizedTarget}' is visible for price`);
         await this.ensureProductVisible(productName);
         
         // Once the product is visible, find its price
@@ -290,7 +292,7 @@ class ProductsPage {
         if (bestPriceEl && minDiff < 300) {
           const priceText = await bestPriceEl.getText().catch(() => '');
           if (priceText.trim()) {
-            console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Found '${normalizedTarget}'. Price: ${priceText}`);
             return priceText;
           }
         }
@@ -298,11 +300,11 @@ class ProductsPage {
         throw new Error(`Price element not found for "${productName}"`);
       } catch (error) {
         lastError = error;
-        console.log(`[Diagnostic] Attempt ${attempt} failed to get price: ${error.message}`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Attempt ${attempt} failed to get price: ${error.message}`);
 
         // Nudge the screen up slightly in case the price is cut off at the bottom edge
         try {
-          console.log(`[Diagnostic] Nudging screen to reveal hidden price...`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Nudging screen to reveal hidden price...`);
           const rect = await this.driver.getWindowRect();
           const centerX = Math.round(rect.width / 2);
           await this.driver.performActions([{
@@ -334,14 +336,14 @@ class ProductsPage {
     const normalizedTarget = this.normalizeProductName(targetProduct);
     
     try {
-      console.log(`[Diagnostic] Using UiScrollable/ensureProductVisible to find '${normalizedTarget}'`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Using UiScrollable/ensureProductVisible to find '${normalizedTarget}'`);
       
       // CI-SPECIFIC APPROACH: Retry loop to handle StaleElementReferenceException and UiScrollable flakiness
       let lastError;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           if (attempt > 1) {
-            console.log(`[Diagnostic] Retry #${attempt} for adding '${normalizedTarget}' to cart`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Retry #${attempt} for adding '${normalizedTarget}' to cart`);
             await this.driver.pause(1000);
           }
           
@@ -385,7 +387,7 @@ class ProductsPage {
             const btnText = await bestBtn.getText().catch(() => '');
             // Ensure we only click it if it hasn't been added yet
             if (btnText.toUpperCase() === 'ADD TO CART') {
-              console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Clicking ADD TO CART for '${normalizedTarget}'`);
               
               // Get initial cart count for verification
               const initialCount = await this.getCartCount();
@@ -400,14 +402,14 @@ class ProductsPage {
                 const currentCount = await this.getCartCount();
                 
                 if (currentText.toUpperCase() !== 'ADD TO CART' || currentCount > initialCount) {
-                  console.log(`[Diagnostic] Click confirmed for '${normalizedTarget}'. New text: '${currentText}', Count: ${currentCount}`);
+                  if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Click confirmed for '${normalizedTarget}'. New text: '${currentText}', Count: ${currentCount}`);
                   clicked = true;
                   break;
                 }
                 
                 // If not registered after 2s, try clicking again once
                 if (v === 2) {
-                  console.log(`[Diagnostic] Click not registered for '${normalizedTarget}', retrying click...`);
+                  if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Click not registered for '${normalizedTarget}', retrying click...`);
                   await bestBtn.click();
                 }
               }
@@ -420,7 +422,7 @@ class ProductsPage {
               await this.driver.pause(800);
               return; // Success
             } else {
-              console.log(`[Diagnostic] Button text is '${btnText}', expected 'ADD TO CART'`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Button text is '${btnText}', expected 'ADD TO CART'`);
               return; // Already added, no error
             }
           }
@@ -428,11 +430,11 @@ class ProductsPage {
           throw new Error(`ADD TO CART button not found for "${targetProduct}"`);
         } catch (error) {
           lastError = error;
-          console.log(`[Diagnostic] Attempt ${attempt} failed: ${error.message}`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Attempt ${attempt} failed: ${error.message}`);
 
           // Nudge the screen up slightly in case the button is cut off at the bottom edge
           try {
-            console.log(`[Diagnostic] Nudging screen to reveal hidden button...`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Nudging screen to reveal hidden button...`);
             const rect = await this.driver.getWindowRect();
             const centerX = Math.round(rect.width / 2);
             await this.driver.performActions([{
@@ -470,14 +472,14 @@ class ProductsPage {
     const normalizedTarget = this.normalizeProductName(targetProduct);
     
     try {
-      console.log(`[Diagnostic] Using UiScrollable/ensureProductVisible to find '${normalizedTarget}' for toggling`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Using UiScrollable/ensureProductVisible to find '${normalizedTarget}' for toggling`);
       
       // CI-SPECIFIC APPROACH: Retry loop to handle StaleElementReferenceException
       let lastError;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
           if (attempt > 1) {
-            console.log(`[Diagnostic] Retry #${attempt} for finding/clicking toggle button for '${normalizedTarget}'`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Retry #${attempt} for finding/clicking toggle button for '${normalizedTarget}'`);
             await this.driver.pause(1000);
           }
           
@@ -485,13 +487,13 @@ class ProductsPage {
           await this.ensureProductVisible(targetProduct);
           
           // Once the product is visible, find its cart button
-          console.log('[Diagnostic] Finding product name elements');
+          if (process.env.DEBUG === 'true') console.log('[Diagnostic] Finding product name elements');
           const nameEls = await this.driver.$$(this.productName);
-          console.log(`[Diagnostic] Found ${nameEls.length} product name elements`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Found ${nameEls.length} product name elements`);
           
-          console.log('[Diagnostic] Finding add/remove cart buttons');
+          if (process.env.DEBUG === 'true') console.log('[Diagnostic] Finding add/remove cart buttons');
           const addBtns = await this.driver.$$('//*[@resource-id="com.androidsample.generalstore:id/productAddCart"]');
-          console.log(`[Diagnostic] Found ${addBtns.length} cart buttons`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Found ${addBtns.length} cart buttons`);
           
           // Find the name element that matches our target
           let targetNameEl = null;
@@ -500,7 +502,7 @@ class ProductsPage {
             const name = this.normalizeProductName(rawName);
             if (name === normalizedTarget) {
               targetNameEl = nameEl;
-              console.log(`[Diagnostic] Found matching name element for '${normalizedTarget}'`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Found matching name element for '${normalizedTarget}'`);
               break;
             }
           }
@@ -527,35 +529,35 @@ class ProductsPage {
             // Extended handling with button state inspection
             const btnText = await bestBtn.getText().catch(() => '');
             const initialState = btnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
-            console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}' - current state: ${initialState}`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Toggling cart state for '${normalizedTarget}' - current state: ${initialState}`);
             
             // Check if the button is actually clickable
             const isClickable = await bestBtn.isClickable().catch(() => false);
-            console.log(`[Diagnostic] Button is ${isClickable ? 'clickable' : 'NOT clickable'}`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Button is ${isClickable ? 'clickable' : 'NOT clickable'}`);
             
             // Unconditional click: bypasses any text check (could be ADD TO CART or ADDED TO CART)
-            console.log(`[Diagnostic] Executing click on cart button for '${normalizedTarget}'`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Executing click on cart button for '${normalizedTarget}'`);
             await bestBtn.click();
             
             // Add substantial stabilization pause to let UI update before continuing
-            console.log(`[Diagnostic] Stabilization pause after toggling '${normalizedTarget}'`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Stabilization pause after toggling '${normalizedTarget}'`);
             await this.driver.pause(3000);
             
             // Check the badge state after toggling
             try {
               const cartCount = await this.getCartCount();
-              console.log(`[Diagnostic] Cart count after toggle: ${cartCount}`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Cart count after toggle: ${cartCount}`);
             } catch (e) {
-              console.log(`[Diagnostic] Error getting cart count after toggle: ${e.message}`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Error getting cart count after toggle: ${e.message}`);
             }
             
             // Check the button's new state
             try {
               const newBtnText = await bestBtn.getText().catch(() => '');
               const newState = newBtnText.toUpperCase() === 'ADD TO CART' ? 'enabled' : 'disabled';
-              console.log(`[Diagnostic] Button state after toggle: ${newState}`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Button state after toggle: ${newState}`);
             } catch (e) {
-              console.log(`[Diagnostic] Error checking button state after toggle: ${e.message}`);
+              if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Error checking button state after toggle: ${e.message}`);
             }
             
             return; // Success, exit retry loop
@@ -564,11 +566,11 @@ class ProductsPage {
           }
         } catch (error) {
           lastError = error;
-          console.log(`[Diagnostic] Attempt ${attempt} failed: ${error.message}`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Attempt ${attempt} failed: ${error.message}`);
 
           // Nudge the screen up slightly in case the button is cut off at the bottom edge
           try {
-            console.log(`[Diagnostic] Nudging screen to reveal hidden button...`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Nudging screen to reveal hidden button...`);
             const rect = await this.driver.getWindowRect();
             const centerX = Math.round(rect.width / 2);
             await this.driver.performActions([{
@@ -588,10 +590,10 @@ class ProductsPage {
         }
       }
       
-      console.log(`[Diagnostic] ERROR: Exhausted all retries for toggling "${targetProduct}"`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] ERROR: Exhausted all retries for toggling "${targetProduct}"`);
       throw lastError;
     } catch (error) {
-      console.log(`[Diagnostic] EXCEPTION during toggle: ${error.message}`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] EXCEPTION during toggle: ${error.message}`);
       throw new Error(`Failed to toggle "${targetProduct}" in cart: ${error.message}`);
     }
   }
@@ -619,7 +621,7 @@ class ProductsPage {
       await this.driver.pause(1500);
     } catch (error) {
       // If first attempt fails (e.g., stale element), try again with a fresh reference
-      console.log(`[Diagnostic] First cart navigation attempt failed: ${error.message}. Retrying...`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] First cart navigation attempt failed: ${error.message}. Retrying...`);
       await this.driver.pause(2000); // Longer pause before retry
       
       // Get a fresh reference and try again
@@ -655,7 +657,7 @@ class ProductsPage {
       await this.driver.pause(1500);
     } catch (error) {
       // If first attempt fails (e.g., stale element), try again with a fresh reference
-      console.log(`[Diagnostic] First back navigation attempt failed: ${error.message}. Retrying...`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] First back navigation attempt failed: ${error.message}. Retrying...`);
       await this.driver.pause(2000); // Longer pause before retry
       
       // Get a fresh reference and try again
@@ -696,14 +698,14 @@ class ProductsPage {
         // Wait a bit longer on each retry
         if (attempt > 0) {
           await this.driver.pause(1000 * attempt);
-          console.log(`[Diagnostic] Retry #${attempt} getting cart count`);
+          if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Retry #${attempt} getting cart count`);
         }
         
         // Check if the cart icon itself is visible
         const cartIcon = await this.cartIconEl;
         const iconVisible = await cartIcon.isDisplayed().catch(() => false);
         if (!iconVisible) {
-          console.log('[Diagnostic] Cart icon not visible when checking count');
+          if (process.env.DEBUG === 'true') console.log('[Diagnostic] Cart icon not visible when checking count');
           continue; // retry
         }
         
@@ -711,14 +713,14 @@ class ProductsPage {
         const badge = await this.driver.$(this.cartBadge);
         const badgeExists = await badge.isExisting().catch(() => false);
         if (!badgeExists) {
-          console.log('[Diagnostic] Cart badge not in DOM, count=0');
+          if (process.env.DEBUG === 'true') console.log('[Diagnostic] Cart badge not in DOM, count=0');
           return 0;
         }
         
         // Next check if it's visible - invisible badge means empty cart
         const displayed = await badge.isDisplayed().catch(() => false);
         if (!displayed) {
-          console.log('[Diagnostic] Cart badge exists but not displayed, count=0');
+          if (process.env.DEBUG === 'true') console.log('[Diagnostic] Cart badge exists but not displayed, count=0');
           return 0;
         }
         
@@ -726,10 +728,10 @@ class ProductsPage {
         const text = await badge.getText().catch(() => '0');
         const count = parseInt(text, 10) || 0;
         
-        console.log(`[Diagnostic] Cart badge visible with count=${count}`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Cart badge visible with count=${count}`);
         return count;
       } catch (error) {
-        console.log(`[Diagnostic] Error getting cart count: ${error.message}`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Error getting cart count: ${error.message}`);
         if (attempt === 2) return 0; // last attempt, give up
       }
     }
@@ -753,12 +755,12 @@ class ProductsPage {
       const normalizedTarget = this.normalizeProductName(productName);
       
       // CI-SPECIFIC APPROACH: Use UiScrollable for direct element targeting
-      console.log(`[Diagnostic] Using ensureProductVisible to find '${normalizedTarget}' for button state check`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Using ensureProductVisible to find '${normalizedTarget}' for button state check`);
       
       try {
         await this.ensureProductVisible(productName);
       } catch (error) {
-        console.log(`[Diagnostic] ensureProductVisible failed to find '${normalizedTarget}': ${error.message}`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] ensureProductVisible failed to find '${normalizedTarget}': ${error.message}`);
         // Fall back to checking whatever is currently visible
       }
       
@@ -777,7 +779,7 @@ class ProductsPage {
       }
       
       if (!targetNameEl) {
-        console.log(`[Diagnostic] Product name '${normalizedTarget}' not found in viewport`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Product name '${normalizedTarget}' not found in viewport`);
         return false; // Can't determine state if product isn't visible
       }
       
@@ -798,14 +800,14 @@ class ProductsPage {
       if (bestBtn && minDiff < 300) {
         const btnText = await bestBtn.getText().catch(() => '');
         const isEnabled = btnText.toUpperCase() === 'ADD TO CART';
-        console.log(`[Diagnostic] Button for '${normalizedTarget}' state: ${isEnabled ? 'enabled' : 'disabled'}`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Button for '${normalizedTarget}' state: ${isEnabled ? 'enabled' : 'disabled'}`);
         return isEnabled;
       }
       
-      console.log(`[Diagnostic] No matching button found for '${normalizedTarget}'`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] No matching button found for '${normalizedTarget}'`);
       return false; // Can't determine state if button isn't found
     } catch (error) {
-      console.log(`[Diagnostic] Error checking button state for '${productName}': ${error.message}`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Error checking button state for '${productName}': ${error.message}`);
       return false; // Return false on errors to avoid halting test execution
     }
   }

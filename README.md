@@ -6,7 +6,7 @@ An enterprise-grade, high-performance mobile automation suite built with **Playw
 
 ## 🚀 Project Overview
 
-This suite provides comprehensive End-to-End (E2E) and Negative test coverage across the application's core shopping flows. By leveraging the **Taqelah-inspired** architecture, the framework ensures stability on real devices (OnePlus 12 and Xiaomi Pad 6) through custom synchronization fixtures and viewport-aware interaction strategies.
+This suite provides comprehensive End-to-End (E2E) and Negative test coverage across the application's core shopping flows. By leveraging the **Taqelah-inspired** architecture, the framework ensures stability on real devices (Pixel 5 (Local) and Pixel Tablet) through custom synchronization fixtures and viewport-aware interaction strategies.
 
 ### **Core Capabilities**
 *   **Parallel Execution:** Dynamic scaling using one Playwright worker per connected device.
@@ -100,7 +100,7 @@ npm run report:merge && npm run report
 | Symptom | Diagnosis | Resolution |
 |---|---|---|
 | **Session Drops (404)** | `terminateApp` was called. | **Rule:** Always use `mobile: startActivity` for resets. |
-| **Gesture Nav Interference** | OnePlus 12 scroll too deep. | Framework uses `scrollPercent: 0.10` for OnePlus stability. |
+| **Gesture Nav Interference** | Pixel 5 (Local) scroll too deep. | Framework uses `scrollPercent: 0.10` for OnePlus stability. |
 | **Spinner Race Condition** | UI state not settled. | Hardened via `split-scroll` pattern and `500ms` settle pause. |
 | **Stale Element Reference** | Viewport recycled too fast. | W3C action swipes used with `1500ms` duration for stability. |
 

@@ -32,7 +32,7 @@ test.describe('App Interruptions', () => {
       expect(await productsPage.getCartCount()).toBe(1);
 
       // Step 2: Send app to background for 5 seconds
-      console.log('[Diagnostic] Sending app to background for 5s...');
+      if (process.env.DEBUG === 'true') console.log('[Diagnostic] Sending app to background for 5s...');
       await driver.execute('mobile: backgroundApp', { seconds: 5 });
 
       // Step 3: Verify app returns to the same screen and state is intact

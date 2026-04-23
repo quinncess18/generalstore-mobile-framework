@@ -160,7 +160,7 @@ class LoginPage {
         await this.driver.$(scrollSelector).waitForDisplayed({ timeout: 30000 });
 
         // Step 2: Settle-Before-Click
-        // Increased to 800ms to handle large flings on tablets like Xiaomi Pad 6.
+        // Increased to 800ms to handle large flings on tablets like Pixel Tablet.
         await this.driver.pause(800);
 
         // Step 3: Perform the click.
@@ -173,7 +173,7 @@ class LoginPage {
         await exactItem.click();
         return; // Success
       } catch (error) {
-        console.log(`[Diagnostic] Attempt ${attempt} failed to find country ${country}.`);
+        if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Attempt ${attempt} failed to find country ${country}.`);
         // Close dropdown via hardware back before retrying
         await this.driver.execute('mobile: pressKey', { keycode: 4 });
         await this.driver.pause(1000);
@@ -200,7 +200,7 @@ class LoginPage {
     // Step 3: Verify and retry if it didn't take (critical for CI)
     const currentVal = await field.getText().catch(() => '');
     if (currentVal !== name && currentVal !== 'Enter name here') {
-      console.log(`[Diagnostic] Name field not clear (value: '${currentVal}'). Retrying clear...`);
+      debugLog(`Name field not clear (value: '${currentVal}'). Retrying clear...`);
       await field.clearValue();
       await field.setValue(name);
     }
@@ -213,7 +213,7 @@ class LoginPage {
         await this.driver.pause(800);
       }
     } catch (e) {
-      console.log(`[Diagnostic] Failed to check/hide keyboard: ${e.message}`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] Failed to check/hide keyboard: ${e.message}`);
     }
   }
 

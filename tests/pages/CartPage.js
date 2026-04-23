@@ -1,5 +1,7 @@
 // @ts-check
 
+const { debugLog } = require('../utils/Logger');
+
 /**
  * CartPage — Page Object Model for the General Store cart screen.
  *
@@ -126,11 +128,11 @@ class CartPage {
         { timeout: 20000, timeoutMsg: 'CartPage: terms text not visible after 20s' }
       );
       
-      // Final stabilization pause to ensure animations are complete
+      // Final stabilization pause
       await this.driver.pause(1000);
-      console.log('[Diagnostic] CartPage is fully loaded and stable');
+      debugLog('CartPage is fully loaded and stable');
     } catch (error) {
-      console.log(`[Diagnostic] Error waiting for CartPage: ${error.message}`);
+      debugLog(`Error waiting for CartPage: ${error.message}`);
       
       // Check current package is still our app
       const pkg = await this.driver.getCurrentPackage();
@@ -206,7 +208,7 @@ class CartPage {
       await this.driver.pause(1500);
     } catch (error) {
       // If first attempt fails (e.g., stale element), try again with a fresh reference
-      console.log(`[Diagnostic] First back navigation attempt failed: ${error.message}. Retrying...`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] First back navigation attempt failed: ${error.message}. Retrying...`);
       await this.driver.pause(2000); // Longer pause before retry
       
       // Get a fresh reference and try again
@@ -230,39 +232,39 @@ class CartPage {
    * @returns {Promise<string[]>}
    */
   async getCartProductNames() {
-    console.log('[Diagnostic] getCartProductNames: Starting collection...');
+    if (process.env.DEBUG === 'true') console.log('[Diagnostic] getCartProductNames: Starting collection...');
     const seen = new Set();
 
     let prevSize = -1;
     let scrolls = 0;
 
     // Reset list to top first to ensure we catch all names if previously scrolled
-    console.log('[Diagnostic] getCartProductNames: Resetting list to top...');
+    if (process.env.DEBUG === 'true') console.log('[Diagnostic] getCartProductNames: Resetting list to top...');
     await this.driver.$(
       `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollToBeginning(10)`
-    ).catch((e) => console.log(`[Diagnostic] getCartProductNames: Reset scroll failed: ${e.message}`));
+    ).catch((e) => { if (process.env.DEBUG === 'true') console.log(`[Diagnostic] getCartProductNames: Reset scroll failed: ${e.message}`); });
 
     while (scrolls < 10) {
       const els = await this.driver.$$(this.cartProductName);
-      console.log(`[Diagnostic] getCartProductNames: Found ${els.length} name elements in view`);
+      if (process.env.DEBUG === 'true') console.log(`[Diagnostic] getCartProductNames: Found ${els.length} name elements in view`);
       
       for (const el of els) {
         const text = await el.getText().catch(() => '');
         if (text) {
           if (!seen.has(text)) {
-            console.log(`[Diagnostic] getCartProductNames: New item found: '${text}'`);
+            if (process.env.DEBUG === 'true') console.log(`[Diagnostic] getCartProductNames: New item found: '${text}'`);
             seen.add(text);
           }
         }
       }
       
       if (seen.size === prevSize) {
-        console.log('[Diagnostic] getCartProductNames: No new items after scroll, stopping.');
+        if (process.env.DEBUG === 'true') console.log('[Diagnostic] getCartProductNames: No new items after scroll, stopping.');
         break;
       }
       prevSize = seen.size;
 
-      console.log('[Diagnostic] getCartProductNames: Scrolling forward...');
+      if (process.env.DEBUG === 'true') console.log('[Diagnostic] getCartProductNames: Scrolling forward...');
       await this.driver.$(
         `android=new UiScrollable(new UiSelector().resourceId("com.androidsample.generalstore:id/rvCartProductList")).scrollForward()`
       ).catch(() => {});
@@ -270,7 +272,7 @@ class CartPage {
       scrolls++;
     }
 
-    console.log(`[Diagnostic] getCartProductNames: Collection complete. Total items: ${seen.size}`);
+    if (process.env.DEBUG === 'true') console.log(`[Diagnostic] getCartProductNames: Collection complete. Total items: ${seen.size}`);
     return Array.from(seen);
   }
 

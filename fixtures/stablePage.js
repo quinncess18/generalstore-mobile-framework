@@ -88,12 +88,12 @@ const settle = driver._deviceProfile?.settlePause ?? 800;
 await driver.pause(settle);
 
       // Brief settle — SplashActivity → LoginActivity transition may still be animating
-      // when waitUntil returns, particularly on the Xiaomi Pad 6 (tablet). Without this,
+      // when waitUntil returns, particularly on the Pixel Tablet (tablet). Without this,
       // the spec's own waitForScreen() can fire before the login screen is fully stable.
       await driver.pause(800);
     } else {
       // Already on the login screen — pause to let any incoming transition finish.
-      // 500ms was insufficient after long tests (>1 min) on the Xiaomi Pad 6 tablet —
+      // 500ms was insufficient after long tests (>1 min) on the Pixel Tablet tablet —
       // the back-navigation animation to LoginActivity needs more settle time.
       await driver.pause(1500);
     }
