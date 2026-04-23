@@ -142,120 +142,120 @@ test.describe('Products', () => {
       }
 
       // TC-P02: ADD TO CART toggle — add → gray/cart=1 → remove → enabled/cart=0
-      console.log(`[Test] TC-P02 Start: Adding ${products.CONVERSE_ALL_STAR.name} to cart`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P02 Start: Adding ${products.CONVERSE_ALL_STAR.name} to cart`);
       await productsPage.addProductToCartByName(products.CONVERSE_ALL_STAR.name);
       
       // Extra stabilization after add
       await driver.pause(2000);
-      console.log('[Test] TC-P02: Checking button state after add');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P02: Checking button state after add');
       
       // Check button state with retry logic
       let buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
       if (buttonEnabled !== false) {
-        console.log('[Test] WARNING: Button still appears enabled after adding to cart. Adding stabilization pause.');
+        if (process.env.DEBUG === 'true') console.log('[Test] WARNING: Button still appears enabled after adding to cart. Adding stabilization pause.');
         await driver.pause(3000);
         buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
       }
-      console.log(`[Test] TC-P02: Button enabled after add: ${buttonEnabled}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P02: Button enabled after add: ${buttonEnabled}`);
       expect(buttonEnabled).toBe(false);
       
       // Check cart count with retry logic
       let cartCount = await productsPage.getCartCount();
       if (cartCount !== 1) {
-        console.log(`[Test] WARNING: Cart count after add is ${cartCount}, expecting 1. Adding stabilization pause.`);
+        if (process.env.DEBUG === 'true') console.log(`[Test] WARNING: Cart count after add is ${cartCount}, expecting 1. Adding stabilization pause.`);
         await driver.pause(3000);
         cartCount = await productsPage.getCartCount();
       }
-      console.log(`[Test] TC-P02: Cart count after add: ${cartCount}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P02: Cart count after add: ${cartCount}`);
       expect(cartCount).toBe(1);
       
       // Long stabilization before toggle
-      console.log(`[Test] TC-P02 Milestone: Preparing to toggle ${products.CONVERSE_ALL_STAR.name}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P02 Milestone: Preparing to toggle ${products.CONVERSE_ALL_STAR.name}`);
       await driver.pause(2000);
       
       // Toggle with extra safeguards
-      console.log('[Test] TC-P02: Toggling product in cart');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P02: Toggling product in cart');
       await productsPage.toggleCartByName(products.CONVERSE_ALL_STAR.name);
       
       // Long stabilization after toggle - CRITICAL for stability
-      console.log('[Test] TC-P02: Post-toggle stabilization pause');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P02: Post-toggle stabilization pause');
       await driver.pause(5000);
       
       // Check button state after toggle with retries
-      console.log('[Test] TC-P02: Checking button state after toggle');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P02: Checking button state after toggle');
       buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
       if (buttonEnabled !== true) {
-        console.log('[Test] WARNING: Button not enabled after toggle. Adding stabilization pause.');
+        if (process.env.DEBUG === 'true') console.log('[Test] WARNING: Button not enabled after toggle. Adding stabilization pause.');
         await driver.pause(3000);
         buttonEnabled = await productsPage.isAddToCartEnabled(products.CONVERSE_ALL_STAR.name);
       }
-      console.log(`[Test] TC-P02: Button enabled after toggle: ${buttonEnabled}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P02: Button enabled after toggle: ${buttonEnabled}`);
       expect(buttonEnabled).toBe(true);
       
       // Check cart count after toggle with retries
-      console.log('[Test] TC-P02: Checking cart count after toggle');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P02: Checking cart count after toggle');
       cartCount = await productsPage.getCartCount();
       if (cartCount !== 0) {
-        console.log(`[Test] WARNING: Cart count after toggle is ${cartCount}, expecting 0. Adding stabilization pause.`);
+        if (process.env.DEBUG === 'true') console.log(`[Test] WARNING: Cart count after toggle is ${cartCount}, expecting 0. Adding stabilization pause.`);
         await driver.pause(3000);
         cartCount = await productsPage.getCartCount();
       }
-      console.log(`[Test] TC-P02: Final cart count after toggle: ${cartCount}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P02: Final cart count after toggle: ${cartCount}`);
       expect(cartCount).toBe(0);
       
       // Final stabilization before proceeding to next test case
-      console.log('[Test] TC-P02 Complete: Adding stabilization pause before next test case');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P02 Complete: Adding stabilization pause before next test case');
       await driver.pause(2000);
 
       // TC-P03: Add Jordan Lift Off → cart=1 → tap cart icon → Cart page opens
-      console.log(`[Test] TC-P03: Adding ${products.JORDAN_LIFT_OFF.name} to cart`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P03: Adding ${products.JORDAN_LIFT_OFF.name} to cart`);
       await productsPage.addProductToCartByName(products.JORDAN_LIFT_OFF.name);
       
       // Ensure cart badge shows 1 with retry logic (critical for test flow)
       cartCount = await productsPage.getCartCount();
       if (cartCount !== 1) {
-        console.log(`[Test] WARNING: Cart count is ${cartCount}, expecting 1. Adding extra stabilization pause.`);
+        if (process.env.DEBUG === 'true') console.log(`[Test] WARNING: Cart count is ${cartCount}, expecting 1. Adding extra stabilization pause.`);
         await driver.pause(2000);
         cartCount = await productsPage.getCartCount();
       }
       expect(cartCount).toBe(1);
       
       // Navigate to cart
-      console.log('[Test] TC-P03: Going to cart');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P03: Going to cart');
       await productsPage.goToCart();
       
       // Extra safety - ensure we've fully transitioned to cart
-      console.log('[Test] TC-P03: Waiting for cart screen');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P03: Waiting for cart screen');
       await cartPage.waitForScreen();
       await driver.pause(1000);
       
       // Verify cart page is visible
       const cartDisplayed = await cartPage.isDisplayed();
-      console.log(`[Test] TC-P03: Cart displayed: ${cartDisplayed}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P03: Cart displayed: ${cartDisplayed}`);
       expect(cartDisplayed).toBe(true);
 
       // TC-P04: Back from Cart → Products intact, cart icon still shows 1 item
-      console.log('[Test] TC-P04: Going back to products');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P04: Going back to products');
       await cartPage.goBack();
       
       // Extra safety - ensure we've fully transitioned back to products
-      console.log('[Test] TC-P04: Waiting for products screen');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-P04: Waiting for products screen');
       await productsPage.waitForScreen();
       await driver.pause(1000);
       
       // Verify products page is visible
       const productsDisplayed = await productsPage.isDisplayed();
-      console.log(`[Test] TC-P04: Products displayed: ${productsDisplayed}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P04: Products displayed: ${productsDisplayed}`);
       expect(productsDisplayed).toBe(true);
       
       // Ensure cart badge still shows 1 with retry logic
       cartCount = await productsPage.getCartCount();
       if (cartCount !== 1) {
-        console.log(`[Test] WARNING: Cart count after back nav is ${cartCount}, expecting 1. Adding extra pause.`);
+        if (process.env.DEBUG === 'true') console.log(`[Test] WARNING: Cart count after back nav is ${cartCount}, expecting 1. Adding extra pause.`);
         await driver.pause(3000);
         cartCount = await productsPage.getCartCount();
       }
-      console.log(`[Test] TC-P04: Final cart count: ${cartCount}`);
+      if (process.env.DEBUG === 'true') console.log(`[Test] TC-P04: Final cart count: ${cartCount}`);
       expect(cartCount).toBe(1);
     }
   );

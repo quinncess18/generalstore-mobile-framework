@@ -115,12 +115,12 @@ test.describe('Cart', () => {
       const price3 = await productsPage.getProductPriceByName(item3.name);
       await productsPage.addProductToCartByName(item3.name);
 
-      console.log('[Test] TC-C02: Navigating to cart');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-C02: Navigating to cart');
       await productsPage.goToCart();
       await cartPage.waitForScreen();
 
       // All 3 items present
-      console.log('[Test] TC-C02: Verifying items in cart');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-C02: Verifying items in cart');
       expect(await cartPage.getItemCount()).toBe(3);
       const cartNames = await cartPage.getCartProductNames();
       expect(cartNames).toContain(item1.name);
@@ -134,7 +134,7 @@ test.describe('Cart', () => {
       }
 
       // Total = sum of all three cart row prices (source of truth)
-      console.log('[Test] TC-C02: Verifying total amount');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-C02: Verifying total amount');
       const parse = (str) => parseFloat(str.replace('$', '').trim());
       const expectedTotal = cartPrices
         .reduce((sum, price) => sum + parse(price), 0)
@@ -143,7 +143,7 @@ test.describe('Cart', () => {
       expect(actualTotal).toBe(expectedTotal);
 
       // Checkbox unchecked → tick it → verify ticked
-      console.log('[Test] TC-C02: Testing checkbox toggle');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-C02: Testing checkbox toggle');
       expect(await cartPage.isEmailOptInChecked()).toBe(false);
       
       // Settle pause before checkbox click
@@ -155,7 +155,7 @@ test.describe('Cart', () => {
       expect(await cartPage.isEmailOptInChecked()).toBe(true);
 
       // Proceed opens CCT (or external browser)
-      console.log('[Test] TC-C02: Tapping Visit Website');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-C02: Tapping Visit Website');
       await cartPage.tapVisitWebsite();
       const webView = await driver.$('//android.webkit.WebView');
       const cctOpened = await webView.waitForExist({ timeout: 10000 }).then(() => true).catch(() => false);
@@ -164,7 +164,7 @@ test.describe('Cart', () => {
       expect(cctOpened || externalBrowserOpened, `Browser did not open. Package: ${currentPkg}`).toBe(true);
 
       // Close CCT
-      console.log('[Test] TC-C02: Closing browser');
+      if (process.env.DEBUG === 'true') console.log('[Test] TC-C02: Closing browser');
       await driver.execute('mobile: pressKey', { keycode: 4 });
       // Add stabilization pause after closing Chrome Custom Tab
       await driver.pause(1500);
