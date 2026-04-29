@@ -6,7 +6,7 @@ An enterprise-grade, high-performance mobile automation suite built with **Playw
 
 ## 🚀 Project Overview
 
-This suite provides comprehensive End-to-End (E2E) and Negative test coverage across the application's core shopping flows. By leveraging the **Taqelah-inspired** architecture, the framework ensures stability on real devices (**Pixel 5 (Local)** and **Pixel Tablet**) through custom synchronization fixtures and viewport-aware interaction strategies.
+This suite provides comprehensive End-to-End (E2E) and Negative test coverage across the application's core shopping flows. By leveraging the **Taqelah-inspired** architecture, the framework ensures stability across local emulators (**Pixel 5** and **Pixel Tablet** AVDs) and real devices (verified on **OnePlus 12** and **Xiaomi Pad 6**) through custom synchronization fixtures and viewport-aware interaction strategies.
 
 ### **Core Capabilities**
 *   **Parallel Execution:** Dynamic scaling using one Playwright worker per connected device.
@@ -105,7 +105,7 @@ APPIUM_HOST=127.0.0.1 DEVICE_0_UDID=<udid> APP_PATH=/tmp/app.apk npm test
 | Symptom | Diagnosis | Resolution |
 |---|---|---|
 | **Session Drops (404)** | `terminateApp` was called. | **Rule:** Always use `mobile: startActivity` for resets. |
-| **Gesture Nav Interference** | Pixel 5 (Local) scroll too deep. | Framework uses `scrollPercent: 0.10` for Pixel stability. |
+| **Gesture Nav Interference** | Pixel 5 emulator scroll too deep on gesture-nav builds. | Framework uses `scrollPercent: 0.10` for Pixel stability. |
 | **Spinner Race Condition** | UI state not settled. | Hardened via `split-scroll` pattern and `800ms` settle pause. |
 | **Stale Element Reference** | Viewport recycled too fast. | W3C action swipes used with `1500ms` duration for stability. |
 
@@ -132,7 +132,7 @@ This is already included in the `npm run appium:start` script.
 
 ## 🏅 Credits & Acknowledgments
 
-This framework is built upon the enterprise-grade testing architecture and design patterns established in the **[Taqelah Lab Project](https://github.com/quinncess18/taqelah-lab-project-test)**. As my first project, the Taqelah web framework served as the foundational baseline for the architectural and organizational strategies implemented in this mobile suite, particularly in its approach to:
+This framework is built upon the testing architecture and design patterns established in the **[Taqelah Lab Project](https://github.com/quinncess18/taqelah-lab-project-test)**, my Playwright + TypeScript web automation framework. The Taqelah patterns served as the foundational baseline for this mobile suite, particularly in its approach to:
 
 *   **State Stabilization:** The `stablePage` and `visual-fixture` patterns.
 *   **Multi-Device Scaling:** The worker-scoped parallel execution model.
